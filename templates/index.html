@@ -1,0 +1,2779 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeseAssistent - Texte verstehen mit synchronisiertem Vorlesen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <!-- OpenDyslexic Font -->
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --accent: #F59E0B;
+            --accent-light: #FCD34D;
+            --bg-warm: #FFFBEB;
+            --bg-card: #FFFFFF;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --highlight: #FEF08A;
+            --highlight-active: #FACC15;
+            --success: #10B981;
+            --border: #E5E7EB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            /* Accessibility Variables */
+            --reading-font: 'Merriweather', serif;
+            --reading-line-height: 1.8;
+            --reading-letter-spacing: 0em;
+            --reading-word-spacing: 0em;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-warm) 0%, #FEF3C7 50%, #ECFDF5 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .byok-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            margin-top: 0.5rem;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+
+        .card-icon.input { background: #DBEAFE; }
+        .card-icon.reading { background: #D1FAE5; }
+        .card-icon.questions { background: #FEE2E2; }
+        .card-icon.settings { background: #E0E7FF; }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 0.375rem;
+        }
+
+        textarea, input[type="text"], input[type="password"], select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #FAFAFA;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            background: white;
+        }
+
+        textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(79, 70, 229, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--accent) 0%, #D97706 100%);
+            color: white;
+            box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Reading Area */
+        .reading-card {
+            background: linear-gradient(to bottom, #FFFEF5, #FFFDF0);
+        }
+
+        .reading-text {
+            font-family: var(--reading-font);
+            font-size: 24px;
+            line-height: var(--reading-line-height);
+            letter-spacing: var(--reading-letter-spacing);
+            word-spacing: var(--reading-word-spacing);
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            border: 2px solid #F3F4F6;
+            min-height: 300px;
+            max-height: 60vh;
+            overflow-y: auto;
+            transition: font-family 0.3s, line-height 0.3s, letter-spacing 0.3s;
+        }
+
+        /* Focus Mode - dim non-active sentences */
+        .reading-text.focus-mode .word {
+            opacity: 0.25;
+            transition: opacity 0.3s;
+        }
+
+        .reading-text.focus-mode .word.active,
+        .reading-text.focus-mode .word.focus-sentence {
+            opacity: 1;
+        }
+
+        .reading-text.focus-mode .word.spoken:not(.focus-sentence) {
+            opacity: 0.4;
+        }
+
+        /* Syllable highlighting */
+        .syllable {
+            border-right: 1px dotted var(--text-muted);
+            padding-right: 1px;
+            margin-right: 1px;
+        }
+
+        .syllable:last-child {
+            border-right: none;
+            padding-right: 0;
+            margin-right: 0;
+        }
+
+        /* Reading ruler/line guide */
+        .reading-ruler {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            opacity: 0.5;
+            pointer-events: none;
+            display: none;
+            transition: top 0.1s ease-out;
+        }
+
+        .reading-text.show-ruler .reading-ruler {
+            display: block;
+        }
+
+        .reading-text-wrapper {
+            position: relative;
+        }
+
+        /* Font Size Control */
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: auto;
+            background: #F3F4F6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+        }
+
+        .font-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: white;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .font-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        #fontSizeDisplay {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Input Row */
+        .input-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Action Row with Language Selector */
+        .action-row {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-group-main {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .language-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: #F9FAFB;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            border: 2px solid var(--border);
+        }
+
+        .language-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .language-icon {
+            font-size: 1.2rem;
+        }
+
+        .language-options {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .lang-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0.5rem 0.75rem;
+            padding-top: 4rem;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 0.9rem;
+            min-width: 90px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lang-btn::before {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 50px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            border-radius: 6px;
+            transition: transform 0.2s, filter 0.2s;
+        }
+
+        /* Deutsche Flagge */
+        .lang-btn[data-lang="de"]::before {
+            background-image: url('/static/d.png');
+        }
+
+        /* Türkische Flagge */
+        .lang-btn[data-lang="tr"]::before {
+            background-image: url('/static/t.png');
+        }
+
+        /* Bulgarische Flagge */
+        .lang-btn[data-lang="bg"]::before {
+            background-image: url('/static/b.png');
+        }
+
+        .lang-btn:hover {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .lang-btn:hover::before {
+            transform: translateX(-50%) scale(1.1);
+        }
+
+        .lang-btn.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .lang-btn.selected::before {
+            transform: translateX(-50%) scale(1.1);
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .lang-btn .lang-name {
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: var(--text-dark);
+            position: relative;
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .lang-btn.selected .lang-name {
+            color: var(--primary-dark);
+        }
+
+        /* File Upload Zone */
+        .upload-zone {
+            border: 3px dashed var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            background: #FAFAFA;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary-light);
+            background: #F5F3FF;
+        }
+
+        .upload-zone.dragover {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            transform: scale(1.01);
+        }
+
+        .upload-zone.processing {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--text-dark);
+            margin-bottom: 0.25rem;
+        }
+
+        .upload-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .upload-formats {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .format-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .format-badge.image {
+            background: #FEF3C7;
+            border-color: #F59E0B;
+            color: #92400E;
+        }
+
+        .upload-divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .upload-divider::before,
+        .upload-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        /* Upload Progress */
+        .upload-progress {
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+        }
+
+        .upload-progress.visible {
+            display: flex;
+        }
+
+        .upload-progress .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .upload-progress-text {
+            flex: 1;
+            font-weight: 600;
+            color: var(--primary-dark);
+        }
+
+        /* Accessibility Settings Panel */
+        .a11y-panel {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            border: 2px solid #86EFAC;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .a11y-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+        }
+
+        .a11y-icon {
+            font-size: 1.25rem;
+        }
+
+        .a11y-title {
+            font-weight: 700;
+            color: #166534;
+            flex: 1;
+        }
+
+        .a11y-toggle {
+            font-size: 0.8rem;
+            color: #166534;
+            transition: transform 0.3s;
+        }
+
+        .a11y-panel.collapsed .a11y-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .a11y-panel.collapsed .a11y-content {
+            display: none;
+        }
+
+        .a11y-content {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .a11y-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .a11y-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #166534;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Font Selection */
+        .font-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .font-btn-select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #86EFAC;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .font-btn-select:hover {
+            border-color: #22C55E;
+            background: #F0FDF4;
+        }
+
+        .font-btn-select.selected {
+            border-color: #16A34A;
+            background: #22C55E;
+            color: white;
+        }
+
+        .font-btn-select.font-standard {
+            font-family: 'Merriweather', serif;
+        }
+
+        .font-btn-select.font-dyslexic {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+
+        .font-btn-select.font-sans {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        /* Sliders */
+        .a11y-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .a11y-slider-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            min-width: 100px;
+        }
+
+        .a11y-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #BBF7D0;
+            outline: none;
+        }
+
+        .a11y-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #16A34A;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .a11y-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .a11y-slider-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #166534;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Checkboxes */
+        .a11y-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .a11y-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #16A34A;
+            cursor: pointer;
+        }
+
+        .a11y-checkbox-label {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+
+        /* Preview */
+        .a11y-preview {
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #BBF7D0;
+            font-size: 1.1rem;
+        }
+
+        /* Translation indicator */
+        .translation-notice {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: #92400E;
+            margin-bottom: 1rem;
+        }
+
+        .translation-notice .notice-icon {
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            .action-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .btn-group-main {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-group-main .btn {
+                width: 100%;
+            }
+            
+            .language-selector {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .language-options {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .lang-btn {
+                flex: 1;
+                min-width: 0;
+                padding-top: 3.5rem;
+            }
+            
+            .lang-btn::before {
+                width: 40px;
+                height: 40px;
+                top: 8px;
+            }
+            
+            .lang-btn .lang-name {
+                font-size: 0.65rem;
+            }
+        }
+
+        .reading-text .word {
+            display: inline;
+            padding: 2px 4px;
+            margin: 0 -2px;
+            border-radius: 4px;
+            transition: background-color 0.15s, transform 0.15s, opacity 0.3s;
+            cursor: pointer;
+        }
+
+        .reading-text .word:hover {
+            background-color: #E0E7FF;
+        }
+
+        .reading-text .word.active {
+            background-color: var(--highlight-active);
+            transform: scale(1.05);
+            font-weight: 600;
+        }
+
+        .reading-text .word.spoken {
+            background-color: var(--highlight);
+        }
+
+        .reading-text .word.spoken:hover {
+            background-color: #FDE047;
+        }
+
+        /* Audio Controls */
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #F9FAFB;
+            border-radius: 12px;
+        }
+
+        .play-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+        }
+
+        .play-btn:hover:not(:disabled) {
+            transform: scale(1.1);
+            box-shadow: 0 6px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .progress-container {
+            flex: 1;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .time-display {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .speed-control label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .speed-control select {
+            width: auto;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* Questions Area */
+        .questions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .question-item {
+            padding: 1rem;
+            background: #F9FAFB;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .question-item.task {
+            border-left-color: var(--accent);
+        }
+
+        .question-number {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .question-item.task .question-number {
+            color: var(--accent);
+        }
+
+        .question-text {
+            font-size: 1rem;
+            color: var(--text-dark);
+        }
+
+        /* Settings Panel */
+        .settings-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .settings-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .api-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .api-status.connected {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .api-status.disconnected {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .status-dot.connected { background: #10B981; }
+        .status-dot.disconnected { background: #EF4444; }
+
+        /* Loading States */
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #E5E7EB;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: var(--shadow-lg);
+            max-width: 350px;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: #EF4444; }
+        .toast.info { background: var(--primary); }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Full Width Section */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        /* Collapsible Settings */
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .settings-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+
+        .settings-content.visible {
+            max-height: 500px;
+        }
+
+        .settings-content.locked {
+            pointer-events: none;
+            opacity: 0.5;
+        }
+
+        .toggle-icon {
+            transition: transform 0.3s;
+        }
+
+        .toggle-icon.open {
+            transform: rotate(180deg);
+        }
+
+        /* Lock Indicator */
+        .lock-indicator {
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .lock-indicator.locked {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* Unlock Button in Header */
+        .btn-unlock {
+            padding: 0.35rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: auto;
+            transition: transform 0.2s;
+        }
+
+        .btn-unlock:hover {
+            transform: scale(1.05);
+        }
+
+        /* Voice Selection */
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .voice-option {
+            padding: 0.5rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .voice-option:hover {
+            border-color: var(--primary-light);
+        }
+
+        .voice-option.selected {
+            border-color: var(--primary);
+            background: #EEF2FF;
+        }
+
+        .voice-option .voice-name {
+            font-weight: 600;
+        }
+
+        .voice-option .voice-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Security Info */
+        .security-info {
+            background: #F0FDF4;
+            border: 1px solid #BBF7D0;
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #166534;
+        }
+
+        .security-info strong {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">📖</div>
+                <h1>LeseAssistent</h1>
+            </div>
+            <p class="subtitle">Texte verstehen mit synchronisiertem Vorlesen</p>
+            <div class="byok-badge">🔑 Bring Your Own Key</div>
+        </header>
+
+        <div class="main-grid">
+            <!-- Settings Card -->
+            <div class="card full-width">
+                <div class="card-header settings-toggle" onclick="toggleSettings()">
+                    <div class="card-icon settings">⚙️</div>
+                    <span class="card-title">API-Einstellungen</span>
+                    <span class="lock-indicator" id="lockIndicator">🔓 Offen</span>
+                    <span id="elevenLabsStatus" class="api-status disconnected">
+                        <span class="status-dot disconnected"></span>
+                        ElevenLabs
+                    </span>
+                    <span id="aiStatus" class="api-status disconnected">
+                        <span class="status-dot disconnected"></span>
+                        KI
+                    </span>
+                    <button class="btn-unlock" id="unlockBtn" onclick="event.stopPropagation(); showUnlockModal();" style="display: none;">
+                        🔓 Entsperren
+                    </button>
+                    <span class="toggle-icon" id="settingsToggleIcon">▼</span>
+                </div>
+                <div class="settings-content" id="settingsContent">
+                    <div class="settings-row" style="margin-top: 1rem;">
+                        <div class="input-group">
+                            <label for="elevenLabsKey">ElevenLabs API Key</label>
+                            <input type="password" id="elevenLabsKey" placeholder="sk_..." onchange="saveSettings()">
+                        </div>
+                        <div class="input-group">
+                            <label for="aiProvider">KI-Anbieter für Textanalyse</label>
+                            <select id="aiProvider" onchange="updateAIKeyLabel(); saveSettings();">
+                                <option value="openai">OpenAI (GPT-4o)</option>
+                                <option value="anthropic">Anthropic (Claude)</option>
+                                <option value="google">Google (Gemini)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="input-group">
+                            <label for="aiKey" id="aiKeyLabel">OpenAI API Key</label>
+                            <input type="password" id="aiKey" placeholder="sk-..." onchange="saveSettings()">
+                        </div>
+                        <div class="input-group">
+                            <label>ElevenLabs Stimme</label>
+                            <div class="voice-grid" id="voiceGrid">
+                                <div class="voice-option selected" data-voice="21m00Tcm4TlvDq8ikWAM" onclick="selectVoice(this)">
+                                    <div class="voice-name">Rachel</div>
+                                    <div class="voice-desc">Warm, klar</div>
+                                </div>
+                                <div class="voice-option" data-voice="AZnzlk1XvdvUeBnXmlld" onclick="selectVoice(this)">
+                                    <div class="voice-name">Domi</div>
+                                    <div class="voice-desc">Freundlich</div>
+                                </div>
+                                <div class="voice-option" data-voice="EXAVITQu4vr4xnSDxMaL" onclick="selectVoice(this)">
+                                    <div class="voice-name">Bella</div>
+                                    <div class="voice-desc">Sanft</div>
+                                </div>
+                                <div class="voice-option" data-voice="ErXwobaYiN019PkySvjV" onclick="selectVoice(this)">
+                                    <div class="voice-name">Antoni</div>
+                                    <div class="voice-desc">Männlich</div>
+                                </div>
+                                <div class="voice-option" data-voice="pNInz6obpgDQGcFmaJgB" onclick="selectVoice(this)">
+                                    <div class="voice-name">Adam</div>
+                                    <div class="voice-desc">Tief</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary" onclick="testConnections()">
+                            🔌 Verbindungen testen
+                        </button>
+                        <button class="btn btn-secondary" id="lockBtn" onclick="showLockModal()">
+                            🔒 Für Schüler sperren
+                        </button>
+                    </div>
+                    <div class="security-info">
+                        <strong>🔒 Lehrer-Modus:</strong>
+                        Klicke auf "Sperren" und lege einen PIN fest. Danach können Schüler die API-Keys nicht mehr sehen oder ändern.
+                        Die Keys werden nur lokal in deinem Browser gespeichert.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Card - Full Width -->
+            <div class="card full-width">
+                <div class="card-header">
+                    <div class="card-icon input">✏️</div>
+                    <span class="card-title">Text eingeben</span>
+                </div>
+                <div class="input-row">
+                    <div class="input-group" style="flex: 1;">
+                        <label for="inputText">Lesetext</label>
+                        
+                        <!-- File Upload Zone -->
+                        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                            <div class="upload-icon">📄</div>
+                            <div class="upload-title">Datei hochladen oder hier ablegen</div>
+                            <div class="upload-subtitle">Dokumente oder Fotos von Texten</div>
+                            <div class="upload-formats">
+                                <span class="format-badge">📝 DOCX</span>
+                                <span class="format-badge">📕 PDF</span>
+                                <span class="format-badge">📄 TXT</span>
+                                <span class="format-badge image">📷 Foto/Bild</span>
+                            </div>
+                        </div>
+                        <input type="file" id="fileInput" class="file-input-hidden" 
+                               accept=".docx,.pdf,.txt,.png,.jpg,.jpeg,.webp,.gif"
+                               onchange="handleFileSelect(event)">
+                        
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="uploadProgress">
+                            <div class="spinner"></div>
+                            <span class="upload-progress-text" id="uploadProgressText">Verarbeite Datei...</span>
+                        </div>
+                        
+                        <div class="upload-divider">oder Text direkt eingeben</div>
+                        
+                        <textarea id="inputText" placeholder="Füge hier den Text ein, der vorgelesen werden soll..." oninput="saveText()"></textarea>
+                    </div>
+                </div>
+                <div class="action-row">
+                    <div class="btn-group-main">
+                        <button class="btn btn-primary btn-large" id="generateAudioBtn" onclick="generateAudio()">
+                            🔊 Audio generieren
+                        </button>
+                        <button class="btn btn-secondary btn-large" id="generateTasksBtn" onclick="openTasksPage()">
+                            📝 Aufgaben erstellen
+                        </button>
+                        <button class="btn btn-secondary btn-large" id="speakingPracticeBtn" onclick="openSpeakingPractice()">
+                            🎤 Nachsprechen
+                        </button>
+                    </div>
+                    
+                    <div class="language-selector">
+                        <div class="language-label">
+                            <span class="language-icon">🌍</span>
+                            <span>Vorlesen in:</span>
+                        </div>
+                        <div class="language-options" id="languageOptions">
+                            <button class="lang-btn selected" data-lang="de" onclick="selectLanguage('de', this)">
+                                <span class="lang-name">Deutsch</span>
+                            </button>
+                            <button class="lang-btn" data-lang="tr" onclick="selectLanguage('tr', this)">
+                                <span class="lang-name">Türkçe</span>
+                            </button>
+                            <button class="lang-btn" data-lang="bg" onclick="selectLanguage('bg', this)">
+                                <span class="lang-name">Български</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reading Card - Full Width, Large -->
+            <div class="card full-width reading-card">
+                <div class="card-header">
+                    <div class="card-icon reading">📚</div>
+                    <span class="card-title">Lesebereich</span>
+                    <div class="font-size-control">
+                        <button class="font-btn" onclick="changeFontSize(-2)" title="Schrift verkleinern">A-</button>
+                        <span id="fontSizeDisplay">24px</span>
+                        <button class="font-btn" onclick="changeFontSize(2)" title="Schrift vergrößern">A+</button>
+                    </div>
+                </div>
+                <div class="reading-text" id="readingText">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>Der Text erscheint hier, sobald das Audio generiert wurde.</p>
+                    </div>
+                </div>
+                <div class="audio-controls" id="audioControls" style="display: none;">
+                    <button class="play-btn" id="playBtn" onclick="togglePlayback()" disabled>
+                        ▶️
+                    </button>
+                    <div class="progress-container">
+                        <div class="progress-bar" onclick="seekAudio(event)">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="time-display">
+                            <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                        </div>
+                    </div>
+                    <div class="speed-control">
+                        <label for="playbackSpeed">Tempo:</label>
+                        <select id="playbackSpeed" onchange="changePlaybackSpeed()">
+                            <option value="0.5">0.5x</option>
+                            <option value="0.75">0.75x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.25">1.25x</option>
+                            <option value="1.5">1.5x</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Accessibility Panel -->
+                <div class="a11y-panel" id="a11yPanel">
+                    <div class="a11y-header" onclick="toggleA11yPanel()">
+                        <span class="a11y-icon">♿</span>
+                        <span class="a11y-title">Lesehilfen & Barrierefreiheit</span>
+                        <span class="a11y-toggle">▼</span>
+                    </div>
+                    <div class="a11y-content">
+                        <!-- Font Selection -->
+                        <div class="a11y-section">
+                            <span class="a11y-section-title">Schriftart</span>
+                            <div class="font-options">
+                                <button class="font-btn-select font-standard selected" onclick="setReadingFont('standard', this)">
+                                    Aa Standard
+                                </button>
+                                <button class="font-btn-select font-dyslexic" onclick="setReadingFont('dyslexic', this)">
+                                    Aa OpenDyslexic
+                                </button>
+                                <button class="font-btn-select font-sans" onclick="setReadingFont('sans', this)">
+                                    Aa Serifenlos
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Line Height -->
+                        <div class="a11y-section">
+                            <div class="a11y-slider-row">
+                                <span class="a11y-slider-label">Zeilenabstand</span>
+                                <input type="range" class="a11y-slider" id="lineHeightSlider" 
+                                       min="1.2" max="3" step="0.1" value="1.8" 
+                                       oninput="setLineHeight(this.value)">
+                                <span class="a11y-slider-value" id="lineHeightValue">1.8</span>
+                            </div>
+                        </div>
+
+                        <!-- Letter Spacing -->
+                        <div class="a11y-section">
+                            <div class="a11y-slider-row">
+                                <span class="a11y-slider-label">Zeichenabstand</span>
+                                <input type="range" class="a11y-slider" id="letterSpacingSlider" 
+                                       min="0" max="0.3" step="0.025" value="0" 
+                                       oninput="setLetterSpacing(this.value)">
+                                <span class="a11y-slider-value" id="letterSpacingValue">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Word Spacing -->
+                        <div class="a11y-section">
+                            <div class="a11y-slider-row">
+                                <span class="a11y-slider-label">Wortabstand</span>
+                                <input type="range" class="a11y-slider" id="wordSpacingSlider" 
+                                       min="0" max="0.5" step="0.05" value="0" 
+                                       oninput="setWordSpacing(this.value)">
+                                <span class="a11y-slider-value" id="wordSpacingValue">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Checkboxes for additional features -->
+                        <div class="a11y-section">
+                            <span class="a11y-section-title">Zusätzliche Hilfen</span>
+                            <div class="a11y-checkbox-row">
+                                <input type="checkbox" class="a11y-checkbox" id="syllableCheckbox" 
+                                       onchange="toggleSyllables(this.checked)">
+                                <label class="a11y-checkbox-label" for="syllableCheckbox">
+                                    Sil·ben·tren·nung anzeigen
+                                </label>
+                            </div>
+                            <div class="a11y-checkbox-row">
+                                <input type="checkbox" class="a11y-checkbox" id="focusModeCheckbox" 
+                                       onchange="toggleFocusMode(this.checked)">
+                                <label class="a11y-checkbox-label" for="focusModeCheckbox">
+                                    Fokus-Modus (nur aktiver Satz hell)
+                                </label>
+                            </div>
+                            <div class="a11y-checkbox-row">
+                                <input type="checkbox" class="a11y-checkbox" id="rulerCheckbox" 
+                                       onchange="toggleReadingRuler(this.checked)">
+                                <label class="a11y-checkbox-label" for="rulerCheckbox">
+                                    Leselineal anzeigen
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="a11y-section">
+                            <span class="a11y-section-title">Vorschau</span>
+                            <div class="a11y-preview" id="a11yPreview">
+                                Die Fo·to·syn·the·se ist ein le·bens·wich·ti·ger Pro·zess.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // =============================================================================
+        // CONFIGURATION
+        // =============================================================================
+        
+        // Backend URL - wird automatisch erkannt oder kann manuell gesetzt werden
+        const API_BASE_URL = window.location.origin;
+        
+        // =============================================================================
+        // GLOBAL STATE
+        // =============================================================================
+        
+        let audioContext = null;
+        let audioBuffer = null;
+        let audioSource = null;
+        let isPlaying = false;
+        let startTime = 0;
+        let pauseTime = 0;
+        let wordTimings = [];
+        let animationFrameId = null;
+        let selectedVoice = '21m00Tcm4TlvDq8ikWAM';
+        let currentFontSize = 24;
+        let selectedLanguage = 'de';
+        let originalText = '';
+        let translatedText = '';
+
+        // =============================================================================
+        // INITIALIZATION
+        // =============================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            updateAPIStatus();
+            loadFontSize();
+            loadSavedText();  // Restore last text
+            checkTeacherMode();  // Check if settings are locked
+        });
+        
+        // =============================================================================
+        // TEXT PERSISTENCE
+        // =============================================================================
+        
+        function saveText() {
+            const text = document.getElementById('inputText').value;
+            localStorage.setItem('leseassistent_text', text);
+        }
+        
+        function loadSavedText() {
+            const saved = localStorage.getItem('leseassistent_text');
+            if (saved) {
+                document.getElementById('inputText').value = saved;
+            }
+        }
+
+        // =============================================================================
+        // TEACHER MODE (PIN-Schutz für Einstellungen)
+        // =============================================================================
+        
+        let isSettingsLocked = false;
+        
+        function checkTeacherMode() {
+            const pin = localStorage.getItem('leseassistent_pin');
+            isSettingsLocked = !!pin;
+            updateSettingsLockUI();
+        }
+        
+        function updateSettingsLockUI() {
+            const settingsContent = document.getElementById('settingsContent');
+            const lockIndicator = document.getElementById('lockIndicator');
+            const lockBtn = document.getElementById('lockBtn');
+            const unlockBtn = document.getElementById('unlockBtn');
+            const settingsToggleIcon = document.getElementById('settingsToggleIcon');
+            
+            if (isSettingsLocked) {
+                // Settings are locked - hide content, show unlock button in header
+                settingsContent.classList.remove('visible');
+                settingsContent.style.display = 'none';
+                lockIndicator.innerHTML = '🔒 Gesperrt';
+                lockIndicator.className = 'lock-indicator locked';
+                unlockBtn.style.display = 'inline-block';
+                settingsToggleIcon.style.display = 'none';
+            } else {
+                // Settings are unlocked
+                settingsContent.style.display = 'block';
+                lockIndicator.innerHTML = '🔓 Offen';
+                lockIndicator.className = 'lock-indicator';
+                unlockBtn.style.display = 'none';
+                settingsToggleIcon.style.display = 'inline';
+            }
+        }
+        
+        function showLockModal() {
+            const pin = prompt('PIN festlegen (4-6 Ziffern):\n\nMit diesem PIN kannst du die Einstellungen schützen, damit Schüler die API-Keys nicht sehen können.');
+            
+            if (pin && /^\d{4,6}$/.test(pin)) {
+                localStorage.setItem('leseassistent_pin', pin);
+                isSettingsLocked = true;
+                updateSettingsLockUI();
+                showToast('✅ Einstellungen gesperrt!', 'success');
+                
+                // Collapse settings
+                const settingsContent = document.getElementById('settingsContent');
+                settingsContent.classList.remove('visible');
+            } else if (pin) {
+                showToast('❌ PIN muss 4-6 Ziffern haben', 'error');
+            }
+        }
+        
+        function showUnlockModal() {
+            const storedPin = localStorage.getItem('leseassistent_pin');
+            const enteredPin = prompt('PIN eingeben zum Entsperren:');
+            
+            if (enteredPin === storedPin) {
+                localStorage.removeItem('leseassistent_pin');
+                isSettingsLocked = false;
+                updateSettingsLockUI();
+                showToast('✅ Einstellungen entsperrt!', 'success');
+            } else if (enteredPin) {
+                showToast('❌ Falscher PIN', 'error');
+            }
+        }
+        
+        function toggleSettings() {
+            if (isSettingsLocked) {
+                showToast('🔒 Einstellungen sind gesperrt. PIN erforderlich.', 'info');
+                return;
+            }
+            
+            const content = document.getElementById('settingsContent');
+            const icon = document.getElementById('settingsToggleIcon');
+            content.classList.toggle('visible');
+            icon.textContent = content.classList.contains('visible') ? '▲' : '▼';
+        }
+
+        // =============================================================================
+        // FONT SIZE CONTROL
+        // =============================================================================
+        
+        function changeFontSize(delta) {
+            currentFontSize = Math.max(16, Math.min(48, currentFontSize + delta));
+            document.getElementById('readingText').style.fontSize = currentFontSize + 'px';
+            document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            localStorage.setItem('leseassistent_fontsize', currentFontSize);
+        }
+
+        function loadFontSize() {
+            const saved = localStorage.getItem('leseassistent_fontsize');
+            if (saved) {
+                currentFontSize = parseInt(saved);
+                document.getElementById('readingText').style.fontSize = currentFontSize + 'px';
+                document.getElementById('fontSizeDisplay').textContent = currentFontSize + 'px';
+            }
+        }
+
+        // =============================================================================
+        // ACCESSIBILITY FEATURES
+        // =============================================================================
+        
+        let a11ySettings = {
+            font: 'standard',
+            lineHeight: 1.8,
+            letterSpacing: 0,
+            wordSpacing: 0,
+            syllables: false,
+            focusMode: false,
+            ruler: false
+        };
+
+        function toggleA11yPanel() {
+            document.getElementById('a11yPanel').classList.toggle('collapsed');
+        }
+
+        function setReadingFont(fontType, element) {
+            // Update selection UI
+            document.querySelectorAll('.font-btn-select').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // Apply font
+            const readingText = document.getElementById('readingText');
+            const preview = document.getElementById('a11yPreview');
+            
+            let fontFamily;
+            switch(fontType) {
+                case 'dyslexic':
+                    fontFamily = "'OpenDyslexic', sans-serif";
+                    break;
+                case 'sans':
+                    fontFamily = "'Nunito', sans-serif";
+                    break;
+                default:
+                    fontFamily = "'Merriweather', serif";
+            }
+            
+            document.documentElement.style.setProperty('--reading-font', fontFamily);
+            preview.style.fontFamily = fontFamily;
+            
+            a11ySettings.font = fontType;
+            saveA11ySettings();
+        }
+
+        function setLineHeight(value) {
+            document.documentElement.style.setProperty('--reading-line-height', value);
+            document.getElementById('lineHeightValue').textContent = value;
+            document.getElementById('a11yPreview').style.lineHeight = value;
+            
+            a11ySettings.lineHeight = parseFloat(value);
+            saveA11ySettings();
+        }
+
+        function setLetterSpacing(value) {
+            const spacing = value + 'em';
+            document.documentElement.style.setProperty('--reading-letter-spacing', spacing);
+            document.getElementById('letterSpacingValue').textContent = value;
+            document.getElementById('a11yPreview').style.letterSpacing = spacing;
+            
+            a11ySettings.letterSpacing = parseFloat(value);
+            saveA11ySettings();
+        }
+
+        function setWordSpacing(value) {
+            const spacing = value + 'em';
+            document.documentElement.style.setProperty('--reading-word-spacing', spacing);
+            document.getElementById('wordSpacingValue').textContent = value;
+            document.getElementById('a11yPreview').style.wordSpacing = spacing;
+            
+            a11ySettings.wordSpacing = parseFloat(value);
+            saveA11ySettings();
+        }
+
+        function toggleSyllables(enabled) {
+            a11ySettings.syllables = enabled;
+            saveA11ySettings();
+            
+            // If text is already displayed, re-render with syllables
+            if (wordTimings && wordTimings.length > 0) {
+                displayTextWithSyllables();
+            }
+            
+            showToast(enabled ? 'Silbentrennung aktiviert' : 'Silbentrennung deaktiviert', 'info');
+        }
+
+        function toggleFocusMode(enabled) {
+            const readingText = document.getElementById('readingText');
+            
+            if (enabled) {
+                readingText.classList.add('focus-mode');
+            } else {
+                readingText.classList.remove('focus-mode');
+            }
+            
+            a11ySettings.focusMode = enabled;
+            saveA11ySettings();
+        }
+
+        function toggleReadingRuler(enabled) {
+            const readingText = document.getElementById('readingText');
+            
+            if (enabled) {
+                readingText.classList.add('show-ruler');
+                // Add ruler element if not exists
+                if (!readingText.querySelector('.reading-ruler')) {
+                    const ruler = document.createElement('div');
+                    ruler.className = 'reading-ruler';
+                    readingText.style.position = 'relative';
+                    readingText.appendChild(ruler);
+                }
+            } else {
+                readingText.classList.remove('show-ruler');
+            }
+            
+            a11ySettings.ruler = enabled;
+            saveA11ySettings();
+        }
+
+        function updateReadingRuler(activeWord) {
+            if (!a11ySettings.ruler) return;
+            
+            const ruler = document.querySelector('.reading-ruler');
+            if (!ruler || !activeWord) return;
+            
+            const rect = activeWord.getBoundingClientRect();
+            const containerRect = document.getElementById('readingText').getBoundingClientRect();
+            ruler.style.top = (rect.bottom - containerRect.top + 5) + 'px';
+        }
+
+        // German syllable rules (simplified version)
+        function syllabify(word) {
+            // Skip short words
+            if (word.length <= 3) return word;
+            
+            // Common German syllable patterns
+            const vowels = 'aeiouäöüAEIOUÄÖÜ';
+            const result = [];
+            let currentSyllable = '';
+            let lastWasVowel = false;
+            
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const isVowel = vowels.includes(char);
+                
+                // Add character to current syllable
+                currentSyllable += char;
+                
+                // Check if we should break
+                if (lastWasVowel && !isVowel && i < word.length - 1) {
+                    // Look ahead - if next char after consonant(s) is vowel, break before this consonant
+                    let lookAhead = i + 1;
+                    while (lookAhead < word.length && !vowels.includes(word[lookAhead])) {
+                        lookAhead++;
+                    }
+                    
+                    if (lookAhead < word.length && currentSyllable.length > 1) {
+                        // Keep at least one consonant with the next syllable
+                        const consonantsToMove = lookAhead - i - 1;
+                        if (consonantsToMove > 0 && currentSyllable.length > 2) {
+                            result.push(currentSyllable.slice(0, -1));
+                            currentSyllable = currentSyllable.slice(-1);
+                        }
+                    }
+                }
+                
+                lastWasVowel = isVowel;
+            }
+            
+            if (currentSyllable) {
+                result.push(currentSyllable);
+            }
+            
+            // Filter out single consonants and merge back
+            const merged = [];
+            for (let i = 0; i < result.length; i++) {
+                if (result[i].length === 1 && !vowels.includes(result[i]) && merged.length > 0) {
+                    merged[merged.length - 1] += result[i];
+                } else if (result[i].length === 1 && !vowels.includes(result[i]) && i < result.length - 1) {
+                    result[i + 1] = result[i] + result[i + 1];
+                } else {
+                    merged.push(result[i]);
+                }
+            }
+            
+            return merged.length > 1 ? merged.join('·') : word;
+        }
+
+        function displayTextWithSyllables() {
+            const readingText = document.getElementById('readingText');
+            readingText.innerHTML = '';
+            
+            wordTimings.forEach((wordData, index) => {
+                const span = document.createElement('span');
+                span.className = 'word-span';
+                span.dataset.index = index;
+                
+                // Apply syllables if enabled
+                if (a11ySettings.syllables) {
+                    span.textContent = syllabify(wordData.word) + ' ';
+                } else {
+                    span.textContent = wordData.word + ' ';
+                }
+                
+                // Tap for translation (future feature)
+                span.addEventListener('click', () => handleWordTap(wordData.word, span));
+                
+                readingText.appendChild(span);
+            });
+        }
+
+        function handleWordTap(word, element) {
+            // For now, just highlight - later can add translation popup
+            console.log('Tapped word:', word);
+        }
+
+        function saveA11ySettings() {
+            localStorage.setItem('leseassistent_a11y', JSON.stringify(a11ySettings));
+        }
+
+        function loadA11ySettings() {
+            const saved = localStorage.getItem('leseassistent_a11y');
+            if (saved) {
+                try {
+                    const settings = JSON.parse(saved);
+                    a11ySettings = { ...a11ySettings, ...settings };
+                    
+                    // Apply saved settings
+                    
+                    // Font
+                    const fontBtn = document.querySelector(`.font-btn-select.font-${a11ySettings.font === 'standard' ? 'standard' : a11ySettings.font === 'dyslexic' ? 'dyslexic' : 'sans'}`);
+                    if (fontBtn) setReadingFont(a11ySettings.font, fontBtn);
+                    
+                    // Sliders
+                    document.getElementById('lineHeightSlider').value = a11ySettings.lineHeight;
+                    setLineHeight(a11ySettings.lineHeight);
+                    
+                    document.getElementById('letterSpacingSlider').value = a11ySettings.letterSpacing;
+                    setLetterSpacing(a11ySettings.letterSpacing);
+                    
+                    document.getElementById('wordSpacingSlider').value = a11ySettings.wordSpacing;
+                    setWordSpacing(a11ySettings.wordSpacing);
+                    
+                    // Checkboxes
+                    document.getElementById('syllableCheckbox').checked = a11ySettings.syllables;
+                    document.getElementById('focusModeCheckbox').checked = a11ySettings.focusMode;
+                    document.getElementById('rulerCheckbox').checked = a11ySettings.ruler;
+                    
+                    if (a11ySettings.focusMode) toggleFocusMode(true);
+                    if (a11ySettings.ruler) toggleReadingRuler(true);
+                    
+                } catch (e) {
+                    console.error('Error loading a11y settings:', e);
+                }
+            }
+        }
+
+        // Load accessibility settings on page load
+        document.addEventListener('DOMContentLoaded', loadA11ySettings);
+
+        // =============================================================================
+        // FILE UPLOAD HANDLING
+        // =============================================================================
+        
+        // Drag and Drop Setup
+        const uploadZone = document.getElementById('uploadZone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => uploadZone.classList.add('dragover'), false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadZone.addEventListener(eventName, () => uploadZone.classList.remove('dragover'), false);
+        });
+        
+        uploadZone.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+        
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+        
+        async function processFile(file) {
+            const filename = file.name.toLowerCase();
+            const isImage = file.type.startsWith('image/');
+            const isDocument = filename.endsWith('.docx') || filename.endsWith('.pdf') || filename.endsWith('.txt');
+            
+            if (!isImage && !isDocument) {
+                showToast('Nicht unterstütztes Format. Erlaubt: DOCX, PDF, TXT oder Bilder.', 'error');
+                return;
+            }
+            
+            // Show progress
+            const progress = document.getElementById('uploadProgress');
+            const progressText = document.getElementById('uploadProgressText');
+            progress.classList.add('visible');
+            uploadZone.classList.add('processing');
+            
+            try {
+                let extractedText = '';
+                
+                if (isImage) {
+                    // OCR via KI-API
+                    const aiKey = document.getElementById('aiKey').value;
+                    const aiProvider = document.getElementById('aiProvider').value;
+                    
+                    if (!aiKey) {
+                        throw new Error('Für Bild-Erkennung wird ein KI API Key benötigt. Bitte in den Einstellungen eintragen.');
+                    }
+                    
+                    progressText.textContent = '📷 Analysiere Bild mit KI...';
+                    
+                    // Convert image to base64
+                    const base64 = await fileToBase64(file);
+                    
+                    const response = await fetch(`${API_BASE_URL}/api/ocr`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            api_key: aiKey,
+                            provider: aiProvider,
+                            image: base64,
+                            mime_type: file.type
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'OCR fehlgeschlagen');
+                    }
+                    
+                    extractedText = data.text;
+                    
+                } else {
+                    // Document extraction
+                    progressText.textContent = '📄 Extrahiere Text aus Dokument...';
+                    
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch(`${API_BASE_URL}/api/extract-text`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Extraktion fehlgeschlagen');
+                    }
+                    
+                    extractedText = data.text;
+                }
+                
+                // Success - fill textarea
+                document.getElementById('inputText').value = extractedText;
+                showToast(`✅ Text aus "${file.name}" erfolgreich extrahiert!`, 'success');
+                
+            } catch (error) {
+                showToast(`Fehler: ${error.message}`, 'error');
+            } finally {
+                progress.classList.remove('visible');
+                uploadZone.classList.remove('processing');
+                // Reset file input
+                document.getElementById('fileInput').value = '';
+            }
+        }
+        
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // =============================================================================
+        // LANGUAGE SELECTION
+        // =============================================================================
+        
+        function selectLanguage(lang, element) {
+            selectedLanguage = lang;
+            
+            // Update UI
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // If audio was already generated, show hint to regenerate
+            if (audioBuffer && originalText) {
+                showToast('Sprache geändert – klicke "Audio generieren" für die neue Sprache', 'info');
+            }
+        }
+
+        // =============================================================================
+        // TASKS PAGE NAVIGATION
+        // =============================================================================
+        
+        function openTasksPage() {
+            const text = document.getElementById('inputText').value.trim();
+            const aiKey = document.getElementById('aiKey').value;
+            const aiProvider = document.getElementById('aiProvider').value;
+            
+            if (!text) {
+                showToast('Bitte gib zuerst einen Text ein.', 'error');
+                return;
+            }
+            
+            if (!aiKey) {
+                showToast('Für Aufgaben wird ein KI API Key benötigt.', 'error');
+                toggleSettings();
+                return;
+            }
+            
+            // Save data to sessionStorage for the tasks page
+            sessionStorage.setItem('leseassistent_text', text);
+            sessionStorage.setItem('leseassistent_ai_key', aiKey);
+            sessionStorage.setItem('leseassistent_ai_provider', aiProvider);
+            
+            // Navigate to tasks page
+            window.location.href = '/aufgaben';
+        }
+
+        function openSpeakingPractice() {
+            const text = document.getElementById('inputText').value.trim();
+            const elevenLabsKey = document.getElementById('elevenLabsKey').value;
+            
+            if (!text) {
+                showToast('Bitte gib zuerst einen Text ein.', 'error');
+                return;
+            }
+            
+            if (!elevenLabsKey) {
+                showToast('Für Nachsprechen wird ein ElevenLabs API Key benötigt.', 'error');
+                toggleSettings();
+                return;
+            }
+            
+            // Save data for the speaking practice page
+            sessionStorage.setItem('leseassistent_text', text);
+            // ElevenLabs key is already in localStorage from saveKeys()
+            
+            // Navigate to speaking practice page
+            window.location.href = '/nachsprechen';
+        }
+
+        // =============================================================================
+        // SETTINGS MANAGEMENT
+        // =============================================================================
+
+        function saveSettings() {
+            const settings = {
+                elevenLabsKey: document.getElementById('elevenLabsKey').value,
+                aiProvider: document.getElementById('aiProvider').value,
+                aiKey: document.getElementById('aiKey').value,
+                selectedVoice: selectedVoice
+            };
+            localStorage.setItem('leseassistent_settings', JSON.stringify(settings));
+            updateAPIStatus();
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('leseassistent_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('elevenLabsKey').value = settings.elevenLabsKey || '';
+                document.getElementById('aiProvider').value = settings.aiProvider || 'openai';
+                document.getElementById('aiKey').value = settings.aiKey || '';
+                selectedVoice = settings.selectedVoice || '21m00Tcm4TlvDq8ikWAM';
+                
+                document.querySelectorAll('.voice-option').forEach(el => {
+                    el.classList.toggle('selected', el.dataset.voice === selectedVoice);
+                });
+                
+                updateAIKeyLabel();
+            }
+        }
+
+        function updateAIKeyLabel() {
+            const provider = document.getElementById('aiProvider').value;
+            const label = document.getElementById('aiKeyLabel');
+            const labels = {
+                'openai': 'OpenAI API Key',
+                'anthropic': 'Anthropic API Key',
+                'google': 'Google AI API Key'
+            };
+            label.textContent = labels[provider];
+        }
+
+        function updateAPIStatus() {
+            const elevenLabsKey = document.getElementById('elevenLabsKey').value;
+            const aiKey = document.getElementById('aiKey').value;
+            
+            const elevenLabsStatus = document.getElementById('elevenLabsStatus');
+            const aiStatus = document.getElementById('aiStatus');
+            
+            if (elevenLabsKey) {
+                elevenLabsStatus.innerHTML = '<span class="status-dot connected"></span> ElevenLabs';
+                elevenLabsStatus.className = 'api-status connected';
+            } else {
+                elevenLabsStatus.innerHTML = '<span class="status-dot disconnected"></span> ElevenLabs';
+                elevenLabsStatus.className = 'api-status disconnected';
+            }
+            
+            if (aiKey) {
+                const provider = document.getElementById('aiProvider').value;
+                const names = { openai: 'OpenAI', anthropic: 'Claude', google: 'Gemini' };
+                aiStatus.innerHTML = `<span class="status-dot connected"></span> ${names[provider]}`;
+                aiStatus.className = 'api-status connected';
+            } else {
+                aiStatus.innerHTML = '<span class="status-dot disconnected"></span> KI';
+                aiStatus.className = 'api-status disconnected';
+            }
+        }
+
+        function selectVoice(element) {
+            document.querySelectorAll('.voice-option').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedVoice = element.dataset.voice;
+            saveSettings();
+        }
+
+        async function testConnections() {
+            showToast('Teste Verbindungen...', 'info');
+            
+            const elevenLabsKey = document.getElementById('elevenLabsKey').value;
+            const aiKey = document.getElementById('aiKey').value;
+            const aiProvider = document.getElementById('aiProvider').value;
+            
+            let results = [];
+            
+            // Test ElevenLabs via Proxy
+            if (elevenLabsKey) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/voices`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ api_key: elevenLabsKey })
+                    });
+                    if (response.ok) {
+                        results.push('✅ ElevenLabs verbunden');
+                    } else {
+                        const data = await response.json();
+                        results.push(`❌ ElevenLabs: ${data.error || 'Fehler'}`);
+                    }
+                } catch (e) {
+                    results.push('❌ ElevenLabs: Verbindungsfehler');
+                }
+            } else {
+                results.push('⚠️ ElevenLabs: Kein Key eingegeben');
+            }
+            
+            // AI Provider Status
+            if (aiKey) {
+                const names = { openai: 'OpenAI', anthropic: 'Claude', google: 'Gemini' };
+                results.push(`✅ ${names[aiProvider]} Key eingegeben`);
+            } else {
+                results.push(`⚠️ KI: Kein Key eingegeben`);
+            }
+            
+            showToast(results.join(' | '), results.every(r => r.startsWith('✅')) ? 'success' : 'info');
+        }
+
+        // =============================================================================
+        // AUDIO GENERATION (via Proxy)
+        // =============================================================================
+        
+        async function generateAudio() {
+            const text = document.getElementById('inputText').value.trim();
+            const elevenLabsKey = document.getElementById('elevenLabsKey').value;
+            const aiKey = document.getElementById('aiKey').value;
+            const aiProvider = document.getElementById('aiProvider').value;
+            
+            if (!text) {
+                showToast('Bitte gib einen Text ein.', 'error');
+                return;
+            }
+            
+            if (!elevenLabsKey) {
+                showToast('Bitte gib deinen ElevenLabs API Key ein.', 'error');
+                toggleSettings();
+                return;
+            }
+            
+            // Check if translation is needed but no AI key
+            if (selectedLanguage !== 'de' && !aiKey) {
+                showToast('Für Übersetzungen wird ein KI API Key benötigt.', 'error');
+                toggleSettings();
+                return;
+            }
+            
+            const btn = document.getElementById('generateAudioBtn');
+            btn.disabled = true;
+            
+            originalText = text;
+            let textToSpeak = text;
+            
+            try {
+                // Step 1: Translate if needed
+                if (selectedLanguage !== 'de') {
+                    btn.innerHTML = '<span class="loading"><span class="spinner"></span> Übersetze...</span>';
+                    
+                    const translateResponse = await fetch(`${API_BASE_URL}/api/translate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            api_key: aiKey,
+                            provider: aiProvider,
+                            text: text,
+                            target_language: selectedLanguage
+                        })
+                    });
+                    
+                    const translateData = await translateResponse.json();
+                    
+                    if (!translateResponse.ok) {
+                        throw new Error(translateData.error || 'Übersetzungsfehler');
+                    }
+                    
+                    textToSpeak = translateData.translated_text;
+                    translatedText = textToSpeak;
+                }
+                
+                // Step 2: Generate audio
+                btn.innerHTML = '<span class="loading"><span class="spinner"></span> Generiere Audio...</span>';
+                
+                const response = await fetch(`${API_BASE_URL}/api/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: elevenLabsKey,
+                        voice_id: selectedVoice,
+                        text: textToSpeak,
+                        model_id: 'eleven_multilingual_v2'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API Fehler');
+                }
+                
+                // Decode audio
+                const audioBytes = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
+                
+                // Initialize AudioContext
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                audioBuffer = await audioContext.decodeAudioData(audioBytes.buffer);
+                
+                // Process character timings to word timings
+                wordTimings = processCharacterTimings(textToSpeak, data.alignment);
+                
+                // Display text with word spans (show translated text if applicable)
+                displayTextWithWords(textToSpeak, selectedLanguage !== 'de');
+                
+                // Show audio controls
+                document.getElementById('audioControls').style.display = 'flex';
+                document.getElementById('playBtn').disabled = false;
+                document.getElementById('totalTime').textContent = formatTime(audioBuffer.duration);
+                
+                // Reset playback state
+                pauseTime = 0;
+                document.getElementById('progressFill').style.width = '0%';
+                document.getElementById('currentTime').textContent = '0:00';
+                
+                const langNames = { de: 'Deutsch', tr: 'Türkisch', bg: 'Bulgarisch' };
+                const successMsg = selectedLanguage !== 'de' 
+                    ? `Audio auf ${langNames[selectedLanguage]} generiert!` 
+                    : 'Audio erfolgreich generiert!';
+                showToast(successMsg, 'success');
+                
+            } catch (error) {
+                console.error('Audio generation error:', error);
+                showToast(`Fehler: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔊 Audio generieren';
+            }
+        }
+
+        function processCharacterTimings(text, alignment) {
+            const words = [];
+            let currentWord = '';
+            let wordStart = 0;
+            let wordEnd = 0;
+            let wordIndex = 0;
+            
+            const chars = alignment.characters || [];
+            const startTimes = alignment.character_start_times_seconds || [];
+            const endTimes = alignment.character_end_times_seconds || [];
+            
+            for (let i = 0; i < chars.length; i++) {
+                const char = chars[i];
+                const charStart = startTimes[i];
+                const charEnd = endTimes[i];
+                
+                if (char === ' ' || char === '\n') {
+                    if (currentWord.length > 0) {
+                        words.push({
+                            word: currentWord,
+                            start: wordStart,
+                            end: wordEnd,
+                            index: wordIndex++
+                        });
+                        currentWord = '';
+                    }
+                } else {
+                    if (currentWord.length === 0) {
+                        wordStart = charStart;
+                    }
+                    currentWord += char;
+                    wordEnd = charEnd;
+                }
+            }
+            
+            if (currentWord.length > 0) {
+                words.push({
+                    word: currentWord,
+                    start: wordStart,
+                    end: wordEnd,
+                    index: wordIndex
+                });
+            }
+            
+            return words;
+        }
+
+        function displayTextWithWords(text, isTranslation = false) {
+            const container = document.getElementById('readingText');
+            container.innerHTML = '';
+            
+            // Add translation notice if applicable
+            if (isTranslation) {
+                const langNames = { de: 'Deutsch', tr: 'Türkisch', bg: 'Bulgarisch' };
+                const notice = document.createElement('div');
+                notice.className = 'translation-notice';
+                notice.innerHTML = `
+                    <span class="notice-icon">🌍</span>
+                    <span>Übersetzung ins ${langNames[selectedLanguage]}</span>
+                `;
+                container.appendChild(notice);
+            }
+            
+            // Create text container
+            const textContainer = document.createElement('div');
+            textContainer.className = 'text-content';
+            
+            const words = text.split(/(\s+)/);
+            let wordIndex = 0;
+            let sentenceIndex = 0;
+            
+            words.forEach(part => {
+                if (part.match(/\s+/)) {
+                    textContainer.appendChild(document.createTextNode(part));
+                } else if (part.length > 0) {
+                    const span = document.createElement('span');
+                    span.className = 'word';
+                    
+                    // Apply syllables if enabled
+                    if (a11ySettings.syllables) {
+                        span.textContent = syllabify(part);
+                    } else {
+                        span.textContent = part;
+                    }
+                    
+                    span.dataset.index = wordIndex++;
+                    span.dataset.sentence = sentenceIndex;
+                    
+                    // Track sentence boundaries
+                    if (part.match(/[.!?]$/)) {
+                        sentenceIndex++;
+                    }
+                    
+                    // Add click handler for word interaction
+                    span.addEventListener('click', () => handleWordTap(part, span));
+                    
+                    textContainer.appendChild(span);
+                }
+            });
+            
+            container.appendChild(textContainer);
+            
+            // Add reading ruler if enabled
+            if (a11ySettings.ruler) {
+                const ruler = document.createElement('div');
+                ruler.className = 'reading-ruler';
+                container.style.position = 'relative';
+                container.appendChild(ruler);
+            }
+        }
+
+        // =============================================================================
+        // PLAYBACK CONTROLS
+        // =============================================================================
+        
+        function togglePlayback() {
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
+        }
+
+        function playAudio() {
+            if (!audioBuffer) return;
+            
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.playbackRate.value = parseFloat(document.getElementById('playbackSpeed').value);
+            audioSource.connect(audioContext.destination);
+            
+            const offset = pauseTime;
+            startTime = audioContext.currentTime - offset;
+            
+            audioSource.start(0, offset);
+            isPlaying = true;
+            
+            document.getElementById('playBtn').innerHTML = '⏸️';
+            
+            audioSource.onended = () => {
+                if (isPlaying) {
+                    stopAudio();
+                }
+            };
+            
+            updateHighlighting();
+        }
+
+        function pauseAudio() {
+            if (audioSource) {
+                audioSource.stop();
+                pauseTime = (audioContext.currentTime - startTime) * audioSource.playbackRate.value;
+            }
+            isPlaying = false;
+            document.getElementById('playBtn').innerHTML = '▶️';
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function stopAudio() {
+            if (audioSource) {
+                try { audioSource.stop(); } catch (e) {}
+            }
+            isPlaying = false;
+            pauseTime = 0;
+            document.getElementById('playBtn').innerHTML = '▶️';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('currentTime').textContent = '0:00';
+            
+            document.querySelectorAll('.word').forEach(el => {
+                el.classList.remove('active', 'spoken');
+            });
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function seekAudio(event) {
+            if (!audioBuffer) return;
+            
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            const newTime = percentage * audioBuffer.duration;
+            
+            const wasPlaying = isPlaying;
+            if (isPlaying) {
+                pauseAudio();
+            }
+            
+            pauseTime = newTime;
+            document.getElementById('progressFill').style.width = `${percentage * 100}%`;
+            document.getElementById('currentTime').textContent = formatTime(newTime);
+            
+            // Update word highlights
+            document.querySelectorAll('.word').forEach(el => {
+                el.classList.remove('active', 'spoken');
+            });
+            wordTimings.forEach((timing, index) => {
+                const element = document.querySelectorAll('.word')[index];
+                if (element && newTime > timing.end) {
+                    element.classList.add('spoken');
+                }
+            });
+            
+            if (wasPlaying) {
+                playAudio();
+            }
+        }
+
+        function changePlaybackSpeed() {
+            if (audioSource && isPlaying) {
+                audioSource.playbackRate.value = parseFloat(document.getElementById('playbackSpeed').value);
+            }
+        }
+
+        function updateHighlighting() {
+            if (!isPlaying || !audioBuffer) return;
+            
+            const playbackRate = parseFloat(document.getElementById('playbackSpeed').value);
+            const currentTime = (audioContext.currentTime - startTime) * playbackRate;
+            
+            const progress = (currentTime / audioBuffer.duration) * 100;
+            document.getElementById('progressFill').style.width = `${Math.min(progress, 100)}%`;
+            document.getElementById('currentTime').textContent = formatTime(currentTime);
+            
+            const wordElements = document.querySelectorAll('.word');
+            let activeElement = null;
+            let activeSentence = null;
+            
+            wordTimings.forEach((timing, index) => {
+                const element = wordElements[index];
+                if (!element) return;
+                
+                if (currentTime >= timing.start && currentTime <= timing.end) {
+                    element.classList.add('active');
+                    element.classList.add('spoken');
+                    activeElement = element;
+                    activeSentence = element.dataset.sentence;
+                } else if (currentTime > timing.end) {
+                    element.classList.remove('active');
+                    element.classList.add('spoken');
+                } else {
+                    element.classList.remove('active', 'spoken');
+                }
+                
+                // Focus mode - highlight same sentence words
+                if (a11ySettings.focusMode && activeSentence !== null) {
+                    if (element.dataset.sentence === activeSentence) {
+                        element.classList.add('focus-sentence');
+                    } else {
+                        element.classList.remove('focus-sentence');
+                    }
+                }
+            });
+            
+            // Update reading ruler position
+            if (activeElement) {
+                updateReadingRuler(activeElement);
+            }
+            
+            animationFrameId = requestAnimationFrame(updateHighlighting);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // =============================================================================
+        // QUESTION GENERATION (via Proxy)
+        // =============================================================================
+        
+        async function generateQuestions() {
+            const text = document.getElementById('inputText').value.trim();
+            const aiKey = document.getElementById('aiKey').value;
+            const aiProvider = document.getElementById('aiProvider').value;
+            const difficulty = document.getElementById('difficultyLevel').value;
+            
+            if (!text) {
+                showToast('Bitte gib einen Text ein.', 'error');
+                return;
+            }
+            
+            if (!aiKey) {
+                showToast('Bitte gib deinen KI API Key ein.', 'error');
+                toggleSettings();
+                return;
+            }
+            
+            const btn = document.getElementById('generateQuestionsBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"><span class="spinner"></span> Generiere...</span>';
+            
+            try {
+                // API-Call über das Backend (Proxy)
+                const response = await fetch(`${API_BASE_URL}/api/generate-questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: aiKey,
+                        provider: aiProvider,
+                        text: text,
+                        difficulty: difficulty
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API Fehler');
+                }
+                
+                displayQuestions(data.questions);
+                showToast('Fragen erfolgreich erstellt!', 'success');
+                
+            } catch (error) {
+                console.error('Question generation error:', error);
+                showToast(`Fehler: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '❓ Fragen erstellen';
+            }
+        }
+
+        function displayQuestions(questions) {
+            const container = document.getElementById('questionsList');
+            container.innerHTML = '';
+            
+            let frageCount = 0;
+            let aufgabeCount = 0;
+            
+            questions.forEach(q => {
+                const div = document.createElement('div');
+                div.className = `question-item ${q.type === 'aufgabe' ? 'task' : ''}`;
+                
+                let label;
+                if (q.type === 'aufgabe') {
+                    aufgabeCount++;
+                    label = `Aufgabe ${aufgabeCount}`;
+                } else {
+                    frageCount++;
+                    label = `Frage ${frageCount}`;
+                }
+                
+                div.innerHTML = `
+                    <div class="question-number">${label}</div>
+                    <div class="question-text">${q.text}</div>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+
+        // =============================================================================
+        // TOAST NOTIFICATIONS
+        // =============================================================================
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

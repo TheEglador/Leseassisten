@@ -1,0 +1,14 @@
+# Render.com Blueprint
+# Einfach das Repo verbinden und Render erkennt diese Konfiguration automatisch
+
+services:
+  - type: web
+    name: leseassistent
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+    plan: free
+    autoDeploy: true

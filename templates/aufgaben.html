@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Aufgaben - LeseAssistent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-light: #818CF8;
+            --primary-dark: #3730A3;
+            --accent: #F59E0B;
+            --accent-light: #FCD34D;
+            --bg-warm: #FFFBEB;
+            --bg-card: #FFFFFF;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --success: #10B981;
+            --success-light: #D1FAE5;
+            --error: #EF4444;
+            --error-light: #FEE2E2;
+            --border: #E5E7EB;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, var(--bg-warm) 0%, #FEF3C7 50%, #ECFDF5 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: white;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover, .back-btn:active {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+        }
+
+        .header-title p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Setup Card */
+        .setup-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .setup-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .setup-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent) 0%, #D97706 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .setup-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        /* Difficulty Selector */
+        .difficulty-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .difficulty-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 1rem;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .difficulty-btn:hover, .difficulty-btn:active {
+            border-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .difficulty-btn.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        }
+
+        .difficulty-btn .level {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .difficulty-btn .label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .difficulty-btn .desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Generate Button */
+        .generate-btn {
+            width: 100%;
+            padding: 1.25rem 2rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .generate-btn:hover:not(:disabled), .generate-btn:active:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(79, 70, 229, 0.4);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Tasks Container */
+        .tasks-container {
+            display: none;
+        }
+
+        .tasks-container.visible {
+            display: block;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Progress Bar */
+        .progress-section {
+            background: white;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-text {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .progress-score {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: #E5E7EB;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success) 0%, #34D399 100%);
+            width: 0%;
+            transition: width 0.5s ease-out;
+            border-radius: 6px;
+        }
+
+        /* Task Card */
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            border-left: 5px solid var(--primary);
+            transition: all 0.3s;
+        }
+
+        .task-card.correct {
+            border-left-color: var(--success);
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+        }
+
+        .task-card.incorrect {
+            border-left-color: var(--error);
+            background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        }
+
+        .task-card.task-type-aufgabe {
+            border-left-color: var(--accent);
+        }
+
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .task-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .task-card.task-type-aufgabe .task-number {
+            background: var(--accent);
+        }
+
+        .task-type-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--primary);
+            background: #EEF2FF;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .task-card.task-type-aufgabe .task-type-label {
+            color: #92400E;
+            background: #FEF3C7;
+        }
+
+        .task-question {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 1.25rem;
+            line-height: 1.5;
+        }
+
+        /* Multiple Choice */
+        .options-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 60px;
+        }
+
+        .option-btn:hover:not(:disabled), .option-btn:active:not(:disabled) {
+            border-color: var(--primary-light);
+            background: #F5F3FF;
+        }
+
+        .option-btn.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        }
+
+        .option-btn.correct {
+            border-color: var(--success);
+            background: var(--success-light);
+        }
+
+        .option-btn.incorrect {
+            border-color: var(--error);
+            background: var(--error-light);
+        }
+
+        .option-btn:disabled {
+            cursor: default;
+        }
+
+        .option-marker {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .option-btn.selected .option-marker {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .option-btn.correct .option-marker {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .option-btn.incorrect .option-marker {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+        }
+
+        .option-text {
+            flex: 1;
+        }
+
+        /* True/False Buttons */
+        .tf-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .tf-btn {
+            padding: 1.5rem;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tf-btn:hover:not(:disabled), .tf-btn:active:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .tf-btn.true:hover:not(:disabled) {
+            border-color: var(--success);
+            background: var(--success-light);
+        }
+
+        .tf-btn.false:hover:not(:disabled) {
+            border-color: var(--error);
+            background: var(--error-light);
+        }
+
+        .tf-btn.selected.true {
+            border-color: var(--success);
+            background: var(--success-light);
+        }
+
+        .tf-btn.selected.false {
+            border-color: var(--error);
+            background: var(--error-light);
+        }
+
+        .tf-btn .tf-icon {
+            font-size: 2rem;
+        }
+
+        /* Text Input for Open Questions */
+        .text-input-container {
+            margin-bottom: 1rem;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 1rem;
+            border: 3px solid var(--border);
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            min-height: 120px;
+            resize: vertical;
+            transition: all 0.2s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Submit Button */
+        .submit-btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Feedback Message */
+        .feedback {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .feedback.visible {
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback.correct {
+            background: var(--success-light);
+            color: #065F46;
+        }
+
+        .feedback.incorrect {
+            background: var(--error-light);
+            color: #991B1B;
+        }
+
+        .feedback-icon {
+            font-size: 1.5rem;
+        }
+
+        .feedback-text {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        /* Results Section */
+        .results-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            display: none;
+        }
+
+        .results-section.visible {
+            display: block;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .results-emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .results-score {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .results-message {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .results-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .result-btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .result-btn.primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .result-btn.secondary {
+            background: #F3F4F6;
+            color: var(--text-dark);
+        }
+
+        .result-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            animation: toastIn 0.3s ease-out;
+        }
+
+        .toast.error { background: var(--error); }
+        .toast.success { background: var(--success); }
+        .toast.info { background: var(--primary); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Text Preview */
+        .text-preview {
+            background: #F9FAFB;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            font-family: 'Merriweather', serif;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+            max-height: 100px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .text-preview::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(transparent, #F9FAFB);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="back-btn" onclick="goBack()">←</button>
+            <div class="header-title">
+                <h1>📝 Aufgaben</h1>
+                <p>Interaktive Übungen zum Text</p>
+            </div>
+        </header>
+
+        <!-- Setup Section -->
+        <div class="setup-card" id="setupCard">
+            <div class="setup-header">
+                <div class="setup-icon">⚙️</div>
+                <span class="setup-title">Aufgaben konfigurieren</span>
+            </div>
+
+            <div class="text-preview" id="textPreview">
+                <em>Lade Text...</em>
+            </div>
+
+            <label style="font-weight: 600; color: var(--text-muted); font-size: 0.9rem; display: block; margin-bottom: 0.75rem;">
+                Schwierigkeitsstufe wählen:
+            </label>
+            
+            <div class="difficulty-selector">
+                <button class="difficulty-btn" data-level="einfach" onclick="selectDifficulty('einfach', this)">
+                    <div class="level">🌱</div>
+                    <div class="label">Einfach</div>
+                    <div class="desc">Klasse 5-6</div>
+                </button>
+                <button class="difficulty-btn selected" data-level="mittel" onclick="selectDifficulty('mittel', this)">
+                    <div class="level">🌿</div>
+                    <div class="label">Mittel</div>
+                    <div class="desc">Klasse 7-8</div>
+                </button>
+                <button class="difficulty-btn" data-level="schwer" onclick="selectDifficulty('schwer', this)">
+                    <div class="level">🌳</div>
+                    <div class="label">Schwer</div>
+                    <div class="desc">Klasse 9-10</div>
+                </button>
+                <button class="difficulty-btn" data-level="oberstufe" onclick="selectDifficulty('oberstufe', this)">
+                    <div class="level">🎓</div>
+                    <div class="label">Oberstufe</div>
+                    <div class="desc">Klasse 11-12</div>
+                </button>
+            </div>
+
+            <button class="generate-btn" id="generateBtn" onclick="generateTasks()">
+                <span id="generateBtnText">🎯 Aufgaben generieren</span>
+            </button>
+        </div>
+
+        <!-- Tasks Section -->
+        <div class="tasks-container" id="tasksContainer">
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-text">Fortschritt: <span id="progressCount">0</span>/<span id="totalCount">0</span></span>
+                    <span class="progress-score"><span id="scoreCount">0</span> Punkte</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div id="tasksList"></div>
+
+            <div class="results-section" id="resultsSection">
+                <div class="results-emoji" id="resultsEmoji">🎉</div>
+                <div class="results-title">Geschafft!</div>
+                <div class="results-score" id="finalScore">0%</div>
+                <div class="results-message" id="resultsMessage">Super gemacht!</div>
+                <div class="results-actions">
+                    <button class="result-btn primary" onclick="resetTasks()">🔄 Nochmal versuchen</button>
+                    <button class="result-btn secondary" onclick="goBack()">← Zurück zum Text</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        
+        let sourceText = '';
+        let aiKey = '';
+        let aiProvider = '';
+        let selectedDifficulty = 'mittel';
+        let tasks = [];
+        let currentScore = 0;
+        let answeredCount = 0;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataFromSession();
+        });
+
+        function loadDataFromSession() {
+            sourceText = sessionStorage.getItem('leseassistent_text') || '';
+            aiKey = sessionStorage.getItem('leseassistent_ai_key') || '';
+            aiProvider = sessionStorage.getItem('leseassistent_ai_provider') || 'openai';
+
+            if (!sourceText || !aiKey) {
+                showToast('Keine Daten gefunden. Bitte zuerst einen Text eingeben.', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+
+            // Show text preview
+            document.getElementById('textPreview').textContent = sourceText.substring(0, 300) + (sourceText.length > 300 ? '...' : '');
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function selectDifficulty(level, element) {
+            selectedDifficulty = level;
+            document.querySelectorAll('.difficulty-btn').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        async function generateTasks() {
+            const btn = document.getElementById('generateBtn');
+            btn.disabled = true;
+            document.getElementById('generateBtnText').innerHTML = '<span class="spinner"></span> Generiere Aufgaben...';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/generate-tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: aiKey,
+                        provider: aiProvider,
+                        text: sourceText,
+                        difficulty: selectedDifficulty
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Fehler beim Generieren');
+                }
+
+                tasks = data.tasks;
+                displayTasks();
+                
+                document.getElementById('setupCard').style.display = 'none';
+                document.getElementById('tasksContainer').classList.add('visible');
+                document.getElementById('totalCount').textContent = tasks.length;
+
+            } catch (error) {
+                showToast(`Fehler: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                document.getElementById('generateBtnText').innerHTML = '🎯 Aufgaben generieren';
+            }
+        }
+
+        function displayTasks() {
+            const container = document.getElementById('tasksList');
+            container.innerHTML = '';
+
+            tasks.forEach((task, index) => {
+                const card = createTaskCard(task, index);
+                container.appendChild(card);
+            });
+        }
+
+        function createTaskCard(task, index) {
+            const card = document.createElement('div');
+            card.className = `task-card task-type-${task.type}`;
+            card.id = `task-${index}`;
+
+            const typeLabel = task.type === 'frage' ? 'Frage' : 'Aufgabe';
+            const taskNum = index + 1;
+
+            let content = `
+                <div class="task-header">
+                    <div class="task-number">${taskNum}</div>
+                    <span class="task-type-label">${typeLabel}</span>
+                </div>
+                <div class="task-question">${task.question}</div>
+            `;
+
+            if (task.taskType === 'multiple_choice') {
+                content += createMultipleChoice(task, index);
+            } else if (task.taskType === 'true_false') {
+                content += createTrueFalse(task, index);
+            } else if (task.taskType === 'open') {
+                content += createOpenQuestion(task, index);
+            }
+
+            content += `<div class="feedback" id="feedback-${index}"></div>`;
+
+            card.innerHTML = content;
+            return card;
+        }
+
+        function createMultipleChoice(task, index) {
+            let html = '<div class="options-grid">';
+            const letters = ['A', 'B', 'C', 'D'];
+            
+            task.options.forEach((option, optIndex) => {
+                html += `
+                    <button class="option-btn" onclick="selectOption(${index}, ${optIndex}, this)" data-correct="${option === task.correctAnswer}">
+                        <span class="option-marker">${letters[optIndex]}</span>
+                        <span class="option-text">${option}</span>
+                    </button>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        function createTrueFalse(task, index) {
+            return `
+                <div class="tf-buttons">
+                    <button class="tf-btn true" onclick="selectTrueFalse(${index}, true, this)" data-correct="${task.correctAnswer === true}">
+                        <span class="tf-icon">✓</span>
+                        <span>Richtig</span>
+                    </button>
+                    <button class="tf-btn false" onclick="selectTrueFalse(${index}, false, this)" data-correct="${task.correctAnswer === false}">
+                        <span class="tf-icon">✗</span>
+                        <span>Falsch</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        function createOpenQuestion(task, index) {
+            return `
+                <div class="text-input-container">
+                    <textarea class="text-input" id="answer-${index}" placeholder="Schreibe deine Antwort hier..." oninput="updateCharCount(${index})"></textarea>
+                    <div class="char-counter"><span id="charCount-${index}">0</span> Zeichen</div>
+                </div>
+                <button class="submit-btn" onclick="submitOpenAnswer(${index})">Antwort prüfen</button>
+            `;
+        }
+
+        function selectOption(taskIndex, optionIndex, element) {
+            const card = document.getElementById(`task-${taskIndex}`);
+            const buttons = card.querySelectorAll('.option-btn');
+            const isCorrect = element.dataset.correct === 'true';
+
+            // Disable all buttons
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                if (btn.dataset.correct === 'true') {
+                    btn.classList.add('correct');
+                }
+            });
+
+            if (isCorrect) {
+                element.classList.add('correct');
+                showFeedback(taskIndex, true, 'Richtig! 🎉');
+                currentScore++;
+            } else {
+                element.classList.add('incorrect');
+                showFeedback(taskIndex, false, 'Leider falsch. Die richtige Antwort ist markiert.');
+            }
+
+            answeredCount++;
+            updateProgress();
+        }
+
+        function selectTrueFalse(taskIndex, answer, element) {
+            const card = document.getElementById(`task-${taskIndex}`);
+            const buttons = card.querySelectorAll('.tf-btn');
+            const isCorrect = element.dataset.correct === 'true';
+
+            buttons.forEach(btn => btn.disabled = true);
+            element.classList.add('selected');
+
+            if (isCorrect) {
+                showFeedback(taskIndex, true, 'Richtig! 🎉');
+                currentScore++;
+            } else {
+                showFeedback(taskIndex, false, 'Leider falsch.');
+                // Highlight correct answer
+                buttons.forEach(btn => {
+                    if (btn.dataset.correct === 'true') {
+                        btn.classList.add('selected');
+                    }
+                });
+            }
+
+            answeredCount++;
+            updateProgress();
+        }
+
+        function updateCharCount(taskIndex) {
+            const textarea = document.getElementById(`answer-${taskIndex}`);
+            document.getElementById(`charCount-${taskIndex}`).textContent = textarea.value.length;
+        }
+
+        function submitOpenAnswer(taskIndex) {
+            const textarea = document.getElementById(`answer-${taskIndex}`);
+            const answer = textarea.value.trim();
+
+            if (answer.length < 10) {
+                showToast('Bitte schreibe eine ausführlichere Antwort.', 'error');
+                return;
+            }
+
+            textarea.disabled = true;
+            const btn = textarea.parentElement.nextElementSibling;
+            btn.disabled = true;
+            btn.textContent = '✓ Eingereicht';
+
+            // For open questions, we give points for effort
+            showFeedback(taskIndex, true, 'Antwort eingereicht! ✍️ Eine offene Aufgabe wird nicht automatisch bewertet.');
+            currentScore++;
+            answeredCount++;
+            updateProgress();
+        }
+
+        function showFeedback(taskIndex, isCorrect, message) {
+            const feedback = document.getElementById(`feedback-${taskIndex}`);
+            feedback.className = `feedback visible ${isCorrect ? 'correct' : 'incorrect'}`;
+            feedback.innerHTML = `
+                <span class="feedback-icon">${isCorrect ? '✅' : '❌'}</span>
+                <span class="feedback-text">${message}</span>
+            `;
+
+            const card = document.getElementById(`task-${taskIndex}`);
+            card.classList.add(isCorrect ? 'correct' : 'incorrect');
+        }
+
+        function updateProgress() {
+            document.getElementById('progressCount').textContent = answeredCount;
+            document.getElementById('scoreCount').textContent = currentScore;
+            
+            const percentage = (answeredCount / tasks.length) * 100;
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+
+            if (answeredCount === tasks.length) {
+                setTimeout(showResults, 1000);
+            }
+        }
+
+        function showResults() {
+            const percentage = Math.round((currentScore / tasks.length) * 100);
+            document.getElementById('finalScore').textContent = `${percentage}%`;
+
+            let emoji, message;
+            if (percentage >= 90) {
+                emoji = '🏆';
+                message = 'Ausgezeichnet! Du hast den Text perfekt verstanden!';
+            } else if (percentage >= 70) {
+                emoji = '🎉';
+                message = 'Sehr gut! Du hast den Text gut verstanden!';
+            } else if (percentage >= 50) {
+                emoji = '👍';
+                message = 'Gut gemacht! Etwas Übung schadet nicht.';
+            } else {
+                emoji = '💪';
+                message = 'Nicht aufgeben! Lies den Text nochmal und versuche es erneut.';
+            }
+
+            document.getElementById('resultsEmoji').textContent = emoji;
+            document.getElementById('resultsMessage').textContent = message;
+            document.getElementById('resultsSection').classList.add('visible');
+        }
+
+        function resetTasks() {
+            currentScore = 0;
+            answeredCount = 0;
+            document.getElementById('resultsSection').classList.remove('visible');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressCount').textContent = '0';
+            document.getElementById('scoreCount').textContent = '0';
+            displayTasks();
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

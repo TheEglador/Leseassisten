@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nachsprechen - LeseAssistent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366F1;
+            --primary-light: #818CF8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --bg-light: #F3F4F6;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 2px solid var(--bg-light);
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-light);
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        .header-title p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Phase Badge */
+        .phase-badge {
+            display: none;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        .phase-badge.visible {
+            display: inline-block;
+        }
+
+        .phase-badge.review {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+        }
+
+        /* Instructions */
+        .instructions-card {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .instructions-title {
+            font-weight: 700;
+            color: #92400E;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .instructions-steps {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .instruction-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #78350F;
+            font-weight: 600;
+        }
+
+        .step-number {
+            width: 24px;
+            height: 24px;
+            background: #F59E0B;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* Progress */
+        .progress-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .progress-text {
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-light);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        /* Karaoke Container */
+        .karaoke-container {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            max-height: 45vh;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            margin-bottom: 1rem;
+        }
+
+        .karaoke-sentence {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            line-height: 2;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+            opacity: 0.3;
+            filter: blur(1px);
+        }
+
+        .karaoke-sentence.active {
+            opacity: 1;
+            filter: none;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border: 2px solid var(--primary-light);
+            transform: scale(1.02);
+        }
+
+        .karaoke-sentence.completed {
+            opacity: 0.6;
+            filter: none;
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            border: 2px solid var(--success);
+        }
+
+        .karaoke-sentence.needs-review {
+            opacity: 0.6;
+            filter: none;
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border: 2px solid var(--warning);
+        }
+
+        .karaoke-sentence .word {
+            display: inline;
+            padding: 0.1rem 0.2rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .karaoke-sentence.active .word.spoken {
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #065F46;
+        }
+
+        /* Recording Status */
+        .recording-status {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .recording-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--error);
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .status-text {
+            font-weight: 700;
+            color: #991B1B;
+        }
+
+        .time {
+            font-weight: 600;
+            color: #B91C1C;
+        }
+
+        /* Recognized Text */
+        .recognized-text-card {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+            border: 2px solid #E5E7EB;
+        }
+
+        .recognized-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .recognized-text {
+            font-family: 'Merriweather', serif;
+            font-size: 1.2rem;
+            line-height: 1.6;
+            color: var(--text-dark);
+            min-height: 2rem;
+        }
+
+        .recognized-text .waiting-text {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .recognized-text .matched-word {
+            background: #D1FAE5;
+            color: #065F46;
+            padding: 0.1rem 0.25rem;
+            border-radius: 4px;
+        }
+
+        .recognized-text .unmatched-word {
+            background: #FEE2E2;
+            color: #991B1B;
+            padding: 0.1rem 0.25rem;
+            border-radius: 4px;
+        }
+
+        /* Feedback Indicators */
+        .feedback-indicator {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .feedback-indicator.visible {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback-indicator.success {
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #065F46;
+        }
+
+        .feedback-indicator.review-later {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            color: #92400E;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .play-btn {
+            width: 120px;
+            height: 60px;
+            border-radius: 30px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .play-btn.recording {
+            background: linear-gradient(135deg, var(--error) 0%, #F87171 100%);
+        }
+
+        .setting-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .setting-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .setting-select {
+            padding: 0.5rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            background: white;
+        }
+
+        /* Review Screen */
+        .review-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .review-screen.visible {
+            display: flex;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        .review-emoji {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .review-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .review-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .review-stats {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .review-stat {
+            text-align: center;
+        }
+
+        .review-stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .review-stat-value.correct {
+            color: var(--success);
+        }
+
+        .review-stat-value.review {
+            color: var(--warning);
+        }
+
+        .review-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .review-sentences-preview {
+            background: var(--bg-light);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            max-width: 100%;
+            text-align: left;
+        }
+
+        .review-sentences-preview h4 {
+            font-size: 0.9rem;
+            color: var(--warning);
+            margin-bottom: 0.5rem;
+        }
+
+        .review-sentences-preview ul {
+            list-style: none;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+        }
+
+        .review-sentences-preview li {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid #E5E7EB;
+        }
+
+        .review-sentences-preview li:last-child {
+            border-bottom: none;
+        }
+
+        .review-btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
+            color: white;
+            border: none;
+            box-shadow: var(--shadow);
+        }
+
+        .review-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Completion Screen */
+        .completion-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .completion-screen.visible {
+            display: flex;
+            animation: scaleIn 0.5s ease-out;
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .completion-emoji {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+
+        .completion-title {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .completion-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        .completion-stats {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .completion-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .completion-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .completion-btn.primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .completion-btn.secondary {
+            background: white;
+            color: var(--text-dark);
+            border: 2px solid var(--bg-light);
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .toast.error { background: var(--error); }
+        .toast.success { background: var(--success); }
+        .toast.info { background: var(--primary); }
+
+        /* Dyslexic font */
+        .karaoke-sentence.dyslexic {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="back-btn" onclick="goBack()">←</button>
+            <div class="header-title">
+                <h1>🎤 Nachsprechen</h1>
+                <p>Höre zu und sprich nach</p>
+            </div>
+            <span class="phase-badge review" id="phaseBadge">🔄 Wiederholung</span>
+        </header>
+
+        <div class="instructions-card" id="instructionsCard">
+            <div class="instructions-title">
+                <span>💡</span> So funktioniert's
+            </div>
+            <div class="instructions-steps">
+                <div class="instruction-step">
+                    <span class="step-number">1</span>
+                    <span>Start drücken</span>
+                </div>
+                <div class="instruction-step">
+                    <span class="step-number">2</span>
+                    <span>Zuhören & Nachsprechen</span>
+                </div>
+                <div class="instruction-step">
+                    <span class="step-number">3</span>
+                    <span>Alle Wörter grün = Weiter!</span>
+                </div>
+            </div>
+            <div style="font-size: 0.8rem; color: #065F46; margin-top: 0.75rem;">
+                ✨ Karaoke-Modus: Sprich nach bis alle Wörter grün sind!
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-header">
+                <span class="progress-text">Satz <span id="currentSentence">1</span> von <span id="totalSentences">0</span></span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="karaoke-container" id="karaokeContainer">
+            <!-- Sentences will be dynamically inserted here -->
+        </div>
+
+        <div class="recording-status" id="recordingStatus">
+            <div class="status-left">
+                <div class="recording-dot"></div>
+                <span class="status-text">🎤 Sprich nach...</span>
+            </div>
+            <span class="time" id="recordingTime">0.0s</span>
+        </div>
+
+        <div class="recognized-text-card" id="recognizedTextCard">
+            <div class="recognized-label">🎤 Erkannter Text:</div>
+            <div class="recognized-text" id="recognizedText">
+                <span class="waiting-text">Warte auf Sprache...</span>
+            </div>
+        </div>
+
+        <!-- Feedback Indicators -->
+        <div class="feedback-indicator success" id="successIndicator">
+            ✅ Perfekt! Weiter zum nächsten Satz...
+        </div>
+        <div class="feedback-indicator review-later" id="reviewLaterIndicator">
+            ⏭️ Üben wir später nochmal!
+        </div>
+
+        <div class="controls" id="controlsSection">
+            <button class="play-btn" id="playBtn" onclick="startKaraokeMode()">
+                ▶️ Start
+            </button>
+            <div class="setting-group">
+                <span class="setting-label">Tempo:</span>
+                <select class="setting-select" id="speedSelect">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.7">0.7x</option>
+                    <option value="0.85" selected>0.85x</option>
+                    <option value="1">1x</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Review Screen (between first pass and retry) -->
+        <div class="review-screen" id="reviewScreen">
+            <div class="review-emoji">📝</div>
+            <div class="review-title" id="reviewTitle">Gut gemacht!</div>
+            <div class="review-subtitle" id="reviewSubtitle">Einige Sätze üben wir nochmal.</div>
+            <div class="review-stats">
+                <div class="review-stat">
+                    <div class="review-stat-value correct" id="reviewCorrectCount">0</div>
+                    <div class="review-stat-label">Richtig</div>
+                </div>
+                <div class="review-stat">
+                    <div class="review-stat-value review" id="reviewNeedsReviewCount">0</div>
+                    <div class="review-stat-label">Zum Üben</div>
+                </div>
+            </div>
+            <div class="review-sentences-preview" id="reviewSentencesPreview">
+                <h4>🔄 Diese Sätze üben wir nochmal:</h4>
+                <ul id="reviewSentencesList"></ul>
+            </div>
+            <button class="review-btn" onclick="startReviewPhase()">
+                🎤 Jetzt wiederholen
+            </button>
+        </div>
+
+        <!-- Completion Screen -->
+        <div class="completion-screen" id="completionScreen">
+            <div class="completion-emoji" id="completionEmoji">🎉</div>
+            <div class="completion-title" id="completionTitle">Großartig!</div>
+            <div class="completion-subtitle" id="completionSubtitle">Du hast alle Sätze durchgearbeitet!</div>
+            <div class="completion-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="statCorrect">0</div>
+                    <div class="stat-label">Richtig</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Gesamt</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="statPercent">0%</div>
+                    <div class="stat-label">Quote</div>
+                </div>
+            </div>
+            <div class="completion-actions">
+                <button class="completion-btn primary" onclick="restartPractice()">
+                    🔄 Nochmal üben
+                </button>
+                <button class="completion-btn secondary" onclick="goBack()">
+                    ← Zurück zum Text
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        // State
+        let sentences = [];
+        let currentIndex = 0;
+        let isPlaying = false;
+        let audioContext = null;
+        let currentAudio = null;
+        let practiceStartTime = null;
+        let speakingTimer = null;
+        let sentenceTimeout = null;
+
+        // Settings
+        let elevenLabsKey = '';
+        let voiceId = '';
+        let aiKey = '';
+        let aiProvider = '';
+
+        // Recording state
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recordingStartTime = null;
+        let recordingTimerInterval = null;
+        let microphoneStream = null;
+
+        // Speech Recognition
+        let speechRecognition = null;
+        let liveTranscript = '';
+        let finalTranscript = '';
+
+        // Results & Review
+        let correctCount = 0;
+        let attemptedCount = 0;
+        let autoAdvanceTimeout = null;
+        let needsReviewIndices = [];  // Indices of sentences that need review
+        let isReviewPhase = false;
+        let reviewQueue = [];  // Queue of sentence indices to review
+        let currentBestMatch = 0;  // Track best match percentage for current sentence
+
+        // Constants
+        const SENTENCE_TIMEOUT_MS = 15000;  // 15 seconds max per sentence
+        const AUTO_ADVANCE_DELAY = 1500;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDataFromSession();
+            initAudioContext();
+            initMicrophone();
+            initSpeechRecognition();
+            applyDyslexicFont();
+        });
+
+        function initAudioContext() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        async function initMicrophone() {
+            try {
+                microphoneStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                console.log('Mikrofon bereit');
+            } catch (err) {
+                console.warn('Mikrofon nicht verfügbar:', err);
+                showToast('⚠️ Mikrofon nicht verfügbar', 'error');
+            }
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                console.warn('Web Speech API nicht unterstützt');
+                return;
+            }
+
+            speechRecognition = new SpeechRecognition();
+            speechRecognition.continuous = true;
+            speechRecognition.interimResults = true;
+            speechRecognition.lang = 'de-DE';
+
+            speechRecognition.onresult = (event) => {
+                let interim = '';
+                finalTranscript = '';
+
+                for (let i = 0; i < event.results.length; i++) {
+                    const result = event.results[i];
+                    if (result.isFinal) {
+                        finalTranscript += result[0].transcript + ' ';
+                    } else {
+                        interim += result[0].transcript;
+                    }
+                }
+
+                liveTranscript = finalTranscript + interim;
+                updateLiveTranscript(liveTranscript.trim());
+            };
+
+            speechRecognition.onerror = (event) => {
+                console.warn('Speech recognition error:', event.error);
+            };
+
+            speechRecognition.onend = () => {
+                if (isRecording && speechRecognition) {
+                    try { speechRecognition.start(); } catch (e) {}
+                }
+            };
+        }
+
+        function applyDyslexicFont() {
+            const a11y = localStorage.getItem('leseassistent_a11y');
+            if (a11y) {
+                try {
+                    const settings = JSON.parse(a11y);
+                    if (settings.font === 'dyslexic') {
+                        document.querySelectorAll('.karaoke-sentence').forEach(el => {
+                            el.classList.add('dyslexic');
+                        });
+                    }
+                } catch (e) {}
+            }
+        }
+
+        function loadDataFromSession() {
+            const text = sessionStorage.getItem('leseassistent_text');
+            const savedSettings = localStorage.getItem('leseassistent_settings');
+
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    elevenLabsKey = settings.elevenLabsKey || '';
+                    voiceId = settings.selectedVoice || '21m00Tcm4TlvDq8ikWAM';
+                    aiKey = settings.aiKey || '';
+                    aiProvider = settings.aiProvider || 'openai';
+                } catch (e) {}
+            }
+
+            if (!text) {
+                showToast('Kein Text gefunden.', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+
+            if (!elevenLabsKey) {
+                showToast('ElevenLabs API Key fehlt.', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+
+            sentences = splitIntoSentences(text);
+
+            if (sentences.length === 0) {
+                showToast('Keine Sätze gefunden.', 'error');
+                return;
+            }
+
+            document.getElementById('totalSentences').textContent = sentences.length;
+            buildKaraokeView();
+            practiceStartTime = Date.now();
+        }
+
+        function splitIntoSentences(text) {
+            const raw = text.split(/(?<=[.!?])\s+/);
+            return raw.map(s => s.trim()).filter(s => s.length > 2);
+        }
+
+        function buildKaraokeView() {
+            const container = document.getElementById('karaokeContainer');
+            container.innerHTML = '';
+
+            const indicesToShow = isReviewPhase ? reviewQueue : sentences.map((_, i) => i);
+
+            indicesToShow.forEach((sentenceIndex, displayIndex) => {
+                const sentence = sentences[sentenceIndex];
+                const div = document.createElement('div');
+                div.className = 'karaoke-sentence';
+                div.id = `sentence-${sentenceIndex}`;
+                div.dataset.sentenceIndex = sentenceIndex;
+
+                const words = sentence.split(/(\s+)/);
+                words.forEach((part, wordIndex) => {
+                    if (part.match(/\s+/)) {
+                        div.appendChild(document.createTextNode(part));
+                    } else if (part.length > 0) {
+                        const span = document.createElement('span');
+                        span.className = 'word';
+                        span.textContent = part;
+                        div.appendChild(span);
+                    }
+                });
+
+                container.appendChild(div);
+            });
+
+            // Update totals for review phase
+            if (isReviewPhase) {
+                document.getElementById('totalSentences').textContent = reviewQueue.length;
+            }
+
+            applyDyslexicFont();
+        }
+
+        function updateActiveSentence(sentenceIndex) {
+            document.querySelectorAll('.karaoke-sentence').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            const activeSentence = document.getElementById(`sentence-${sentenceIndex}`);
+            if (activeSentence) {
+                activeSentence.classList.add('active');
+                activeSentence.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Update progress display
+            if (isReviewPhase) {
+                const reviewIndex = reviewQueue.indexOf(sentenceIndex);
+                document.getElementById('currentSentence').textContent = reviewIndex + 1;
+                const progress = ((reviewIndex + 1) / reviewQueue.length) * 100;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            } else {
+                document.getElementById('currentSentence').textContent = sentenceIndex + 1;
+                const progress = ((sentenceIndex + 1) / sentences.length) * 100;
+                document.getElementById('progressFill').style.width = `${progress}%`;
+            }
+        }
+
+        function markSentenceCompleted(sentenceIndex) {
+            const sentence = document.getElementById(`sentence-${sentenceIndex}`);
+            if (sentence) {
+                sentence.classList.remove('active', 'needs-review');
+                sentence.classList.add('completed');
+            }
+        }
+
+        function markSentenceNeedsReview(sentenceIndex) {
+            const sentence = document.getElementById(`sentence-${sentenceIndex}`);
+            if (sentence) {
+                sentence.classList.remove('active', 'completed');
+                sentence.classList.add('needs-review');
+            }
+        }
+
+        // Karaoke Mode
+        async function startKaraokeMode() {
+            const playBtn = document.getElementById('playBtn');
+
+            if (isPlaying) {
+                stopKaraokeMode();
+                return;
+            }
+
+            if (!microphoneStream) {
+                showToast('Mikrofon nicht verfügbar', 'error');
+                return;
+            }
+
+            isPlaying = true;
+            playBtn.innerHTML = '⏹️ Stop';
+            playBtn.classList.add('recording');
+            
+            if (!isReviewPhase) {
+                practiceStartTime = Date.now();
+                currentIndex = 0;
+            }
+
+            await playAndListen();
+        }
+
+        function stopKaraokeMode() {
+            isPlaying = false;
+            stopRecording();
+            stopAudio();
+            clearTimeouts();
+
+            const playBtn = document.getElementById('playBtn');
+            playBtn.innerHTML = '▶️ Start';
+            playBtn.classList.remove('recording');
+
+            hideAllFeedback();
+        }
+
+        function clearTimeouts() {
+            if (autoAdvanceTimeout) {
+                clearTimeout(autoAdvanceTimeout);
+                autoAdvanceTimeout = null;
+            }
+            if (sentenceTimeout) {
+                clearTimeout(sentenceTimeout);
+                sentenceTimeout = null;
+            }
+        }
+
+        function hideAllFeedback() {
+            document.getElementById('recordingStatus').style.display = 'none';
+            document.getElementById('recognizedTextCard').style.display = 'none';
+            document.getElementById('successIndicator').classList.remove('visible');
+            document.getElementById('reviewLaterIndicator').classList.remove('visible');
+        }
+
+        async function playAndListen() {
+            if (!isPlaying) return;
+
+            // Determine current sentence index
+            let sentenceIndex;
+            if (isReviewPhase) {
+                if (currentIndex >= reviewQueue.length) {
+                    showCompletion();
+                    return;
+                }
+                sentenceIndex = reviewQueue[currentIndex];
+            } else {
+                if (currentIndex >= sentences.length) {
+                    checkForReviewPhase();
+                    return;
+                }
+                sentenceIndex = currentIndex;
+            }
+
+            updateActiveSentence(sentenceIndex);
+            currentBestMatch = 0;
+
+            // Play TTS
+            await playCurrentSentenceTTS(sentenceIndex);
+
+            if (!isPlaying) return;
+
+            // Start recording
+            startRecordingForKaraoke(sentenceIndex);
+        }
+
+        async function playCurrentSentenceTTS(sentenceIndex) {
+            return new Promise(async (resolve) => {
+                try {
+                    const sentence = sentences[sentenceIndex];
+                    const speed = parseFloat(document.getElementById('speedSelect').value);
+
+                    const response = await fetch(`${API_BASE_URL}/api/tts`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: sentence,
+                            api_key: elevenLabsKey,
+                            voice_id: voiceId
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok || !data.audio_base64) {
+                        resolve();
+                        return;
+                    }
+
+                    const audioData = atob(data.audio_base64);
+                    const audioArray = new Uint8Array(audioData.length);
+                    for (let i = 0; i < audioData.length; i++) {
+                        audioArray[i] = audioData.charCodeAt(i);
+                    }
+
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+
+                    const audioBuffer = await audioContext.decodeAudioData(audioArray.buffer);
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.playbackRate.value = speed;
+                    source.connect(audioContext.destination);
+
+                    source.onended = () => resolve();
+                    currentAudio = source;
+                    source.start(0);
+                } catch (error) {
+                    console.error('Playback error:', error);
+                    resolve();
+                }
+            });
+        }
+
+        function startRecordingForKaraoke(sentenceIndex) {
+            audioChunks = [];
+            isRecording = true;
+            liveTranscript = '';
+            finalTranscript = '';
+            currentBestMatch = 0;
+
+            // Reset word highlighting
+            const activeSentence = document.getElementById(`sentence-${sentenceIndex}`);
+            if (activeSentence) {
+                activeSentence.querySelectorAll('.word').forEach(span => {
+                    span.classList.remove('spoken');
+                });
+            }
+
+            // Show UI
+            document.getElementById('recordingStatus').style.display = 'flex';
+            document.getElementById('recognizedTextCard').style.display = 'block';
+            document.getElementById('recognizedText').innerHTML = '<span class="waiting-text">Sprich jetzt...</span>';
+
+            mediaRecorder = new MediaRecorder(microphoneStream, { mimeType: 'audio/webm' });
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                isRecording = false;
+                clearInterval(recordingTimerInterval);
+                if (speechRecognition) {
+                    try { speechRecognition.stop(); } catch (e) {}
+                }
+            };
+
+            mediaRecorder.start();
+            recordingStartTime = Date.now();
+
+            if (speechRecognition) {
+                try { speechRecognition.start(); } catch (e) {}
+            }
+
+            updateRecordingTime();
+            recordingTimerInterval = setInterval(updateRecordingTime, 100);
+
+            // Set timeout for this sentence
+            sentenceTimeout = setTimeout(() => {
+                if (isRecording) {
+                    handleSentenceTimeout(sentenceIndex);
+                }
+            }, SENTENCE_TIMEOUT_MS);
+        }
+
+        function handleSentenceTimeout(sentenceIndex) {
+            stopRecording();
+            
+            // At timeout: ALWAYS mark for review
+            // Only 100% match (all words green) counts as success
+            // This ensures students practice until they get it perfect
+            handleSentenceNeedsReview(sentenceIndex);
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            if (speakingTimer) {
+                clearTimeout(speakingTimer);
+                speakingTimer = null;
+            }
+            if (recordingTimerInterval) {
+                clearInterval(recordingTimerInterval);
+            }
+        }
+
+        function stopAudio() {
+            if (currentAudio) {
+                try { currentAudio.stop(); } catch (e) {}
+                currentAudio = null;
+            }
+        }
+
+        function updateRecordingTime() {
+            const elapsed = (Date.now() - recordingStartTime) / 1000;
+            document.getElementById('recordingTime').textContent = elapsed.toFixed(1) + 's';
+        }
+
+        // Live Transcript Processing
+        function capitalizeFirstLetter(text) {
+            if (!text) return text;
+            return text.charAt(0).toUpperCase() + text.slice(1);
+        }
+
+        function updateLiveTranscript(text) {
+            if (!text) {
+                document.getElementById('recognizedText').innerHTML = '<span class="waiting-text">Sprich jetzt...</span>';
+                return;
+            }
+
+            text = capitalizeFirstLetter(text);
+
+            // Get current sentence index
+            let sentenceIndex = isReviewPhase ? reviewQueue[currentIndex] : currentIndex;
+            const originalText = sentences[sentenceIndex];
+            const comparison = compareAndHighlight(originalText, text);
+
+            displayRecognizedText(text, comparison.recognizedMatches);
+            highlightKaraokeWords(sentenceIndex, comparison.originalMatches);
+
+            // Track best match
+            if (comparison.similarity > currentBestMatch) {
+                currentBestMatch = comparison.similarity;
+            }
+
+            // Check for success (all words matched)
+            const allMatched = comparison.originalMatches.every(m => m === true);
+            const totalWords = comparison.originalMatches.length;
+
+            if (allMatched && totalWords > 0) {
+                handleSentenceSuccess(sentenceIndex);
+            }
+        }
+
+        function handleSentenceSuccess(sentenceIndex) {
+            if (autoAdvanceTimeout) return;  // Already handling
+
+            clearTimeouts();
+            stopRecording();
+
+            // Show success feedback
+            document.getElementById('successIndicator').classList.add('visible');
+            document.getElementById('reviewLaterIndicator').classList.remove('visible');
+
+            correctCount++;
+            markSentenceCompleted(sentenceIndex);
+
+            // Remove from needs-review if it was there (in case of retry)
+            const reviewIdx = needsReviewIndices.indexOf(sentenceIndex);
+            if (reviewIdx > -1) {
+                needsReviewIndices.splice(reviewIdx, 1);
+            }
+
+            autoAdvanceTimeout = setTimeout(() => {
+                hideAllFeedback();
+                autoAdvanceTimeout = null;
+                advanceToNextSentence();
+            }, AUTO_ADVANCE_DELAY);
+        }
+
+        function handleSentenceNeedsReview(sentenceIndex) {
+            if (autoAdvanceTimeout) return;
+
+            clearTimeouts();
+            stopRecording();
+
+            // Show "review later" feedback
+            document.getElementById('reviewLaterIndicator').classList.add('visible');
+            document.getElementById('successIndicator').classList.remove('visible');
+
+            markSentenceNeedsReview(sentenceIndex);
+
+            // Add to review list if not already there and not in review phase
+            if (!isReviewPhase && !needsReviewIndices.includes(sentenceIndex)) {
+                needsReviewIndices.push(sentenceIndex);
+            }
+
+            autoAdvanceTimeout = setTimeout(() => {
+                hideAllFeedback();
+                autoAdvanceTimeout = null;
+                advanceToNextSentence();
+            }, AUTO_ADVANCE_DELAY);
+        }
+
+        function advanceToNextSentence() {
+            currentIndex++;
+            attemptedCount++;
+
+            if (isReviewPhase) {
+                if (currentIndex >= reviewQueue.length) {
+                    showCompletion();
+                } else {
+                    playAndListen();
+                }
+            } else {
+                if (currentIndex >= sentences.length) {
+                    checkForReviewPhase();
+                } else {
+                    playAndListen();
+                }
+            }
+        }
+
+        function checkForReviewPhase() {
+            isPlaying = false;
+            stopKaraokeMode();
+
+            if (needsReviewIndices.length > 0) {
+                showReviewScreen();
+            } else {
+                showCompletion();
+            }
+        }
+
+        // Review Screen
+        function showReviewScreen() {
+            // Hide main UI
+            document.getElementById('karaokeContainer').style.display = 'none';
+            document.getElementById('controlsSection').style.display = 'none';
+            document.getElementById('instructionsCard').style.display = 'none';
+            document.querySelector('.progress-section').style.display = 'none';
+
+            // Populate review screen
+            const correctFirst = sentences.length - needsReviewIndices.length;
+            document.getElementById('reviewCorrectCount').textContent = correctFirst;
+            document.getElementById('reviewNeedsReviewCount').textContent = needsReviewIndices.length;
+
+            // Set title based on performance
+            const reviewTitle = document.getElementById('reviewTitle');
+            const reviewSubtitle = document.getElementById('reviewSubtitle');
+            
+            if (correctFirst >= sentences.length * 0.7) {
+                reviewTitle.textContent = 'Super gemacht! 👏';
+                reviewSubtitle.textContent = `Nur ${needsReviewIndices.length} Satz${needsReviewIndices.length > 1 ? 'e' : ''} zum Wiederholen.`;
+            } else {
+                reviewTitle.textContent = 'Gut! Weiter geht\'s! 💪';
+                reviewSubtitle.textContent = `${needsReviewIndices.length} Satz${needsReviewIndices.length > 1 ? 'e' : ''} üben wir nochmal.`;
+            }
+
+            // Show preview of sentences to review
+            const list = document.getElementById('reviewSentencesList');
+            list.innerHTML = '';
+            needsReviewIndices.forEach(idx => {
+                const li = document.createElement('li');
+                li.textContent = sentences[idx].substring(0, 50) + (sentences[idx].length > 50 ? '...' : '');
+                list.appendChild(li);
+            });
+
+            document.getElementById('reviewScreen').classList.add('visible');
+        }
+
+        function startReviewPhase() {
+            // Hide review screen
+            document.getElementById('reviewScreen').classList.remove('visible');
+
+            // Setup review phase
+            isReviewPhase = true;
+            reviewQueue = [...needsReviewIndices];
+            currentIndex = 0;
+
+            // Show phase badge
+            document.getElementById('phaseBadge').classList.add('visible');
+
+            // Show UI again
+            document.getElementById('karaokeContainer').style.display = 'block';
+            document.getElementById('controlsSection').style.display = 'flex';
+            document.querySelector('.progress-section').style.display = 'block';
+
+            // Rebuild karaoke view with only review sentences
+            buildKaraokeView();
+            updateActiveSentence(reviewQueue[0]);
+
+            // Auto-start
+            startKaraokeMode();
+        }
+
+        function compareAndHighlight(original, recognized) {
+            const normalize = (text) => {
+                return text.toLowerCase()
+                    .replace(/[.,!?;:'"„"»«\-–—]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+            };
+
+            // German phonetic equivalents (F/Ph, K/C, etc.)
+            const normalizePhonetic = (word) => {
+                return word
+                    .replace(/ph/g, 'f')      // Photosynthese → Fotosynthese
+                    .replace(/th/g, 't')      // Rhythmus → Rytmus (spoken)
+                    .replace(/ß/g, 'ss')      // Straße → Strasse
+                    .replace(/ae/g, 'ä')
+                    .replace(/oe/g, 'ö')
+                    .replace(/ue/g, 'ü');
+            };
+
+            const origWords = original.split(/\s+/).filter(w => w.length > 0);
+            const recogWords = recognized.split(/\s+/).filter(w => w.length > 0);
+
+            const origNormalized = origWords.map(w => normalize(w));
+            const recogNormalized = recogWords.map(w => normalize(w));
+
+            // Also create phonetically normalized versions
+            const origPhonetic = origNormalized.map(w => normalizePhonetic(w));
+            const recogPhonetic = recogNormalized.map(w => normalizePhonetic(w));
+
+            const originalMatches = new Array(origWords.length).fill(false);
+            const recognizedMatches = new Array(recogWords.length).fill(false);
+
+            recogNormalized.forEach((recogWord, rIdx) => {
+                origNormalized.forEach((origWord, oIdx) => {
+                    if (!originalMatches[oIdx] && !recognizedMatches[rIdx]) {
+                        // Check exact match
+                        if (recogWord === origWord) {
+                            originalMatches[oIdx] = true;
+                            recognizedMatches[rIdx] = true;
+                        }
+                        // Check phonetic match (Foto/Photo)
+                        else if (recogPhonetic[rIdx] === origPhonetic[oIdx]) {
+                            originalMatches[oIdx] = true;
+                            recognizedMatches[rIdx] = true;
+                        }
+                        // Check Levenshtein distance (allow small typos)
+                        else if (levenshteinDistance(recogWord, origWord) <= 1) {
+                            originalMatches[oIdx] = true;
+                            recognizedMatches[rIdx] = true;
+                        }
+                        // For longer words, allow more tolerance (2 edits for 8+ letter words)
+                        else if (origWord.length >= 8 && levenshteinDistance(recogWord, origWord) <= 2) {
+                            originalMatches[oIdx] = true;
+                            recognizedMatches[rIdx] = true;
+                        }
+                    }
+                });
+            });
+
+            const matchCount = originalMatches.filter(m => m).length;
+            const similarity = origWords.length > 0 ? matchCount / origWords.length : 0;
+
+            return { similarity, originalMatches, recognizedMatches };
+        }
+
+        function levenshteinDistance(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+
+            const matrix = [];
+
+            for (let i = 0; i <= b.length; i++) {
+                matrix[i] = [i];
+            }
+
+            for (let j = 0; j <= a.length; j++) {
+                matrix[0][j] = j;
+            }
+
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1,
+                            matrix[i][j - 1] + 1,
+                            matrix[i - 1][j] + 1
+                        );
+                    }
+                }
+            }
+
+            return matrix[b.length][a.length];
+        }
+
+        function displayRecognizedText(text, matches) {
+            const container = document.getElementById('recognizedText');
+            const words = text.split(/\s+/).filter(w => w.length > 0);
+
+            container.innerHTML = '';
+
+            words.forEach((word, idx) => {
+                const span = document.createElement('span');
+                span.textContent = word;
+                span.className = matches[idx] ? 'matched-word' : 'unmatched-word';
+                container.appendChild(span);
+
+                if (idx < words.length - 1) {
+                    container.appendChild(document.createTextNode(' '));
+                }
+            });
+        }
+
+        function highlightKaraokeWords(sentenceIndex, matches) {
+            const activeSentence = document.getElementById(`sentence-${sentenceIndex}`);
+            if (!activeSentence) return;
+
+            const wordSpans = activeSentence.querySelectorAll('.word');
+
+            wordSpans.forEach((span, idx) => {
+                span.classList.remove('spoken');
+                if (idx < matches.length && matches[idx]) {
+                    span.classList.add('spoken');
+                }
+            });
+        }
+
+        // Completion
+        function showCompletion() {
+            isPlaying = false;
+            stopAudio();
+            stopRecording();
+            clearTimeouts();
+
+            document.getElementById('karaokeContainer').style.display = 'none';
+            document.getElementById('recordingStatus').style.display = 'none';
+            document.getElementById('recognizedTextCard').style.display = 'none';
+            document.getElementById('controlsSection').style.display = 'none';
+            document.getElementById('instructionsCard').style.display = 'none';
+            document.querySelector('.progress-section').style.display = 'none';
+            document.getElementById('phaseBadge').classList.remove('visible');
+            hideAllFeedback();
+
+            const total = sentences.length;
+            const correct = correctCount;
+            const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+            document.getElementById('statCorrect').textContent = correct;
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPercent').textContent = percent + '%';
+
+            let emoji, title, subtitle;
+            if (percent >= 80) {
+                emoji = '🏆';
+                title = 'Ausgezeichnet!';
+                subtitle = 'Du hast super gesprochen!';
+            } else if (percent >= 60) {
+                emoji = '🎉';
+                title = 'Gut gemacht!';
+                subtitle = 'Weiter so!';
+            } else if (percent >= 40) {
+                emoji = '👍';
+                title = 'Guter Versuch!';
+                subtitle = 'Übung macht den Meister!';
+            } else {
+                emoji = '💪';
+                title = 'Weiter üben!';
+                subtitle = 'Jeder Versuch zählt!';
+            }
+
+            document.getElementById('completionEmoji').textContent = emoji;
+            document.getElementById('completionTitle').textContent = title;
+            document.getElementById('completionSubtitle').textContent = subtitle;
+
+            document.getElementById('completionScreen').classList.add('visible');
+        }
+
+        function restartPractice() {
+            currentIndex = 0;
+            correctCount = 0;
+            attemptedCount = 0;
+            autoAdvanceTimeout = null;
+            needsReviewIndices = [];
+            isReviewPhase = false;
+            reviewQueue = [];
+            currentBestMatch = 0;
+
+            document.getElementById('completionScreen').classList.remove('visible');
+            document.getElementById('reviewScreen').classList.remove('visible');
+            document.getElementById('karaokeContainer').style.display = 'block';
+            document.getElementById('controlsSection').style.display = 'flex';
+            document.getElementById('instructionsCard').style.display = 'block';
+            document.querySelector('.progress-section').style.display = 'block';
+            document.getElementById('phaseBadge').classList.remove('visible');
+            document.getElementById('totalSentences').textContent = sentences.length;
+
+            document.getElementById('playBtn').innerHTML = '▶️ Start';
+            document.getElementById('playBtn').classList.remove('recording');
+
+            buildKaraokeView();
+            updateActiveSentence(0);
+        }
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
