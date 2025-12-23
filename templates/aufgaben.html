@@ -789,6 +789,7 @@
         let tasks = [];
         let currentScore = 0;
         let answeredCount = 0;
+        let sessionCode = '';  // For session-based auth
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -797,21 +798,65 @@
 
         function loadDataFromSession() {
             sourceText = sessionStorage.getItem('leseassistent_text') || '';
-            aiKey = sessionStorage.getItem('leseassistent_ai_key') || '';
-            aiProvider = sessionStorage.getItem('leseassistent_ai_provider') || 'openai';
+            sessionCode = sessionStorage.getItem('leseassistent_session_code') || '';
+            
+            // Check for pre-generated tasks from teacher
+            const preGeneratedTasks = sessionStorage.getItem('leseassistent_tasks');
+            
+            // Fall back to old method if no session code
+            if (!sessionCode) {
+                aiKey = sessionStorage.getItem('leseassistent_ai_key') || '';
+                aiProvider = sessionStorage.getItem('leseassistent_ai_provider') || 'openai';
+                
+                // Also try localStorage
+                const savedSettings = localStorage.getItem('leseassistent_settings');
+                if (savedSettings && !aiKey) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        aiKey = settings.aiKey || '';
+                        aiProvider = settings.aiProvider || 'openai';
+                    } catch (e) {}
+                }
+            }
 
-            if (!sourceText || !aiKey) {
-                showToast('Keine Daten gefunden. Bitte zuerst einen Text eingeben.', 'error');
+            if (!sourceText) {
+                showToast('Kein Text gefunden. Bitte zuerst einen Text eingeben.', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+            
+            if (!sessionCode && !aiKey) {
+                showToast('Keine Session oder API Key gefunden.', 'error');
                 setTimeout(() => window.location.href = '/', 2000);
                 return;
             }
 
             // Show text preview
             document.getElementById('textPreview').textContent = sourceText.substring(0, 300) + (sourceText.length > 300 ? '...' : '');
+            
+            // If teacher pre-generated tasks, load them directly
+            if (preGeneratedTasks) {
+                try {
+                    tasks = JSON.parse(preGeneratedTasks);
+                    if (tasks && tasks.length > 0) {
+                        // Hide setup, show tasks directly
+                        document.getElementById('setupPhase').style.display = 'none';
+                        document.getElementById('tasksPhase').style.display = 'block';
+                        renderTasks();
+                        showToast('📝 Aufgaben vom Lehrer geladen!', 'success');
+                    }
+                } catch (e) {
+                    console.error('Error parsing pre-generated tasks:', e);
+                }
+            }
         }
 
         function goBack() {
-            window.location.href = '/';
+            if (sessionCode) {
+                window.location.href = '/student?code=' + sessionCode;
+            } else {
+                window.location.href = '/';
+            }
         }
 
         function selectDifficulty(level, element) {
@@ -826,15 +871,23 @@
             document.getElementById('generateBtnText').innerHTML = '<span class="spinner"></span> Generiere Aufgaben...';
 
             try {
+                // Build request body
+                const requestBody = {
+                    text: sourceText,
+                    difficulty: selectedDifficulty
+                };
+                
+                if (sessionCode) {
+                    requestBody.session_code = sessionCode;
+                } else {
+                    requestBody.api_key = aiKey;
+                    requestBody.provider = aiProvider;
+                }
+
                 const response = await fetch(`${API_BASE_URL}/api/generate-tasks`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        api_key: aiKey,
-                        provider: aiProvider,
-                        text: sourceText,
-                        difficulty: selectedDifficulty
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();

@@ -789,6 +789,7 @@
         let voiceId = '';
         let aiKey = '';
         let aiProvider = '';
+        let sessionCode = '';  // For session-based auth
 
         // Recording state
         let mediaRecorder = null;
@@ -895,16 +896,20 @@
 
         function loadDataFromSession() {
             const text = sessionStorage.getItem('leseassistent_text');
-            const savedSettings = localStorage.getItem('leseassistent_settings');
-
-            if (savedSettings) {
-                try {
-                    const settings = JSON.parse(savedSettings);
-                    elevenLabsKey = settings.elevenLabsKey || '';
-                    voiceId = settings.selectedVoice || '21m00Tcm4TlvDq8ikWAM';
-                    aiKey = settings.aiKey || '';
-                    aiProvider = settings.aiProvider || 'openai';
-                } catch (e) {}
+            sessionCode = sessionStorage.getItem('leseassistent_session_code') || '';
+            
+            // Try session-based auth first, then fall back to localStorage
+            if (!sessionCode) {
+                const savedSettings = localStorage.getItem('leseassistent_settings');
+                if (savedSettings) {
+                    try {
+                        const settings = JSON.parse(savedSettings);
+                        elevenLabsKey = settings.elevenLabsKey || '';
+                        voiceId = settings.selectedVoice || '21m00Tcm4TlvDq8ikWAM';
+                        aiKey = settings.aiKey || '';
+                        aiProvider = settings.aiProvider || 'openai';
+                    } catch (e) {}
+                }
             }
 
             if (!text) {
@@ -913,8 +918,9 @@
                 return;
             }
 
-            if (!elevenLabsKey) {
-                showToast('ElevenLabs API Key fehlt.', 'error');
+            // Check if we have either session code or API key
+            if (!sessionCode && !elevenLabsKey) {
+                showToast('Keine Session oder API Key gefunden.', 'error');
                 setTimeout(() => window.location.href = '/', 2000);
                 return;
             }
@@ -1106,14 +1112,22 @@
                     const sentence = sentences[sentenceIndex];
                     const speed = parseFloat(document.getElementById('speedSelect').value);
 
+                    // Build request body - use session code if available, otherwise API key
+                    const requestBody = {
+                        text: sentence,
+                        voice_id: voiceId || '21m00Tcm4TlvDq8ikWAM'
+                    };
+                    
+                    if (sessionCode) {
+                        requestBody.session_code = sessionCode;
+                    } else {
+                        requestBody.api_key = elevenLabsKey;
+                    }
+
                     const response = await fetch(`${API_BASE_URL}/api/tts`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            text: sentence,
-                            api_key: elevenLabsKey,
-                            voice_id: voiceId
-                        })
+                        body: JSON.stringify(requestBody)
                     });
 
                     const data = await response.json();
@@ -1620,7 +1634,12 @@
         }
 
         function goBack() {
-            window.location.href = '/';
+            // Go back to student view if in session, otherwise to home
+            if (sessionCode) {
+                window.location.href = '/student?code=' + sessionCode;
+            } else {
+                window.location.href = '/';
+            }
         }
 
         function showToast(message, type = 'info') {

@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lehrer-Dashboard - LeseAssistent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366F1;
+            --primary-light: #818CF8;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --bg-light: #F3F4F6;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 2px solid var(--bg-light);
+            background: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-light);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+        }
+
+        h1 span {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: block;
+        }
+
+        /* Phases */
+        .phase {
+            display: none;
+        }
+
+        .phase.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--error) 0%, #F87171 100%);
+            color: white;
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .btn-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* Session Active View */
+        .session-code-display {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            border-radius: 16px;
+            margin-bottom: 1rem;
+        }
+
+        .session-code-label {
+            font-weight: 700;
+            color: #065F46;
+            margin-bottom: 0.5rem;
+        }
+
+        .session-code {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: 0.5rem;
+            color: #047857;
+            font-family: 'Courier New', monospace;
+        }
+
+        .session-expires {
+            font-size: 0.85rem;
+            color: #065F46;
+            margin-top: 0.5rem;
+        }
+
+        /* QR Code */
+        .qr-section {
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .qr-code {
+            max-width: 200px;
+            margin: 1rem auto;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        .qr-url {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        /* Student Counter */
+        .student-counter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .counter-number {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .counter-label {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        /* Text Section */
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 1rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .text-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Status Messages */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .status-badge.success {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-badge.warning {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--error); }
+        .toast.info { background: var(--primary); }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Voices */
+        .voice-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .voice-option {
+            padding: 0.5rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .voice-option:hover {
+            border-color: var(--primary-light);
+        }
+
+        .voice-option.selected {
+            border-color: var(--primary);
+            background: #EEF2FF;
+        }
+
+        .voice-name {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .voice-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* End Session Section */
+        .end-session-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed var(--bg-light);
+            text-align: center;
+        }
+
+        .end-session-warning {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        /* File Upload */
+        .upload-zone {
+            border: 2px dashed var(--bg-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 1rem;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--primary-light);
+            background: #F5F3FF;
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-input-hidden {
+            display: none;
+        }
+
+        /* Accessibility Panel Styles */
+        #a11yCard {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            border: 2px solid #86EFAC;
+        }
+
+        .a11y-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .a11y-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .a11y-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #166534;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .font-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .font-btn {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #86EFAC;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .font-btn:hover {
+            border-color: #22C55E;
+            background: #F0FDF4;
+        }
+
+        .font-btn.selected {
+            border-color: #16A34A;
+            background: #22C55E;
+            color: white;
+        }
+
+        .font-btn.font-standard {
+            font-family: 'Merriweather', serif;
+        }
+
+        .font-btn.font-dyslexic {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+
+        .font-btn.font-sans {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .a11y-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #BBF7D0;
+            outline: none;
+        }
+
+        .a11y-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #16A34A;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #166534;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #16A34A;
+            cursor: pointer;
+        }
+
+        .checkbox-row label {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #34D399 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* PIN Protection Overlay */
+        .pin-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .pin-overlay.hidden {
+            display: none;
+        }
+
+        .pin-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .pin-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .pin-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .pin-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .pin-input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            border: 2px solid var(--bg-light);
+            border-radius: 12px;
+            margin-bottom: 1rem;
+        }
+
+        .pin-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .pin-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 1rem;
+        }
+
+        /* Tasks Panel */
+        .tasks-panel {
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            border: 2px solid #F59E0B;
+        }
+
+        .tasks-panel .card-title {
+            color: #92400E;
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .task-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow);
+        }
+
+        .task-item .task-text {
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .task-item .task-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            background: var(--bg-light);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .task-item .task-delete {
+            background: none;
+            border: none;
+            color: var(--error);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.25rem;
+        }
+
+        .tasks-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
+            color: white;
+        }
+
+        .generating-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Preview Box */
+        .preview-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #D1FAE5;
+        }
+
+        .preview-label {
+            font-weight: 700;
+            color: #166534;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .preview-box {
+            background: white;
+            border: 2px solid #D1FAE5;
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 120px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .preview-text {
+            font-family: 'Merriweather', serif;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+        }
+
+        .preview-text.font-standard {
+            font-family: 'Merriweather', serif;
+        }
+
+        .preview-text.font-dyslexic {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+
+        .preview-text.font-sans {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        .preview-text .sentence {
+            display: inline;
+        }
+
+        .preview-text .sentence.dimmed {
+            opacity: 0.3;
+        }
+
+        .preview-ruler {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2.5em;
+            background: linear-gradient(to bottom, 
+                rgba(99, 102, 241, 0.1) 0%,
+                rgba(99, 102, 241, 0.15) 50%,
+                rgba(99, 102, 241, 0.1) 100%);
+            border-top: 2px solid rgba(99, 102, 241, 0.3);
+            border-bottom: 2px solid rgba(99, 102, 241, 0.3);
+            pointer-events: none;
+            display: none;
+        }
+
+        .preview-box:hover .preview-ruler.active {
+            display: block;
+        }
+
+        .preview-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- PIN Protection Overlay -->
+    <div class="pin-overlay hidden" id="pinOverlay">
+        <div class="pin-box">
+            <div class="pin-icon">🔐</div>
+            <div class="pin-title">Lehrer-Bereich</div>
+            <div class="pin-subtitle">Bitte PIN eingeben</div>
+            <input type="password" class="pin-input" id="pinInput" maxlength="6" placeholder="••••">
+            <button class="btn btn-primary btn-full" onclick="checkPIN()">Entsperren</button>
+            <div class="pin-hint">Der PIN wurde vom Lehrer beim Erstellen der Session festgelegt.</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <header>
+            <button class="back-btn" onclick="goBack()">←</button>
+            <h1>
+                👨‍🏫 Lehrer-Dashboard
+                <span>Session erstellen und verwalten</span>
+            </h1>
+        </header>
+
+        <!-- Phase 1: Session erstellen -->
+        <div class="phase active" id="phaseCreate">
+            <div class="card">
+                <div class="card-title">🔑 API-Keys eingeben</div>
+                
+                <div class="form-group">
+                    <label for="elevenLabsKey">ElevenLabs API Key *</label>
+                    <input type="password" id="elevenLabsKey" placeholder="sk_...">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="aiProvider">KI-Anbieter</label>
+                        <select id="aiProvider">
+                            <option value="openai">OpenAI (GPT-4o)</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                            <option value="google">Google (Gemini)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="aiKey">KI API Key (für Aufgaben & OCR)</label>
+                        <input type="password" id="aiKey" placeholder="sk-...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ElevenLabs Stimme</label>
+                    <div class="voice-grid" id="voiceGrid">
+                        <div class="voice-option selected" data-voice="21m00Tcm4TlvDq8ikWAM">
+                            <div class="voice-name">Rachel</div>
+                            <div class="voice-desc">Warm</div>
+                        </div>
+                        <div class="voice-option" data-voice="AZnzlk1XvdvUeBnXmlld">
+                            <div class="voice-name">Domi</div>
+                            <div class="voice-desc">Freundlich</div>
+                        </div>
+                        <div class="voice-option" data-voice="EXAVITQu4vr4xnSDxMaL">
+                            <div class="voice-name">Bella</div>
+                            <div class="voice-desc">Sanft</div>
+                        </div>
+                        <div class="voice-option" data-voice="ErXwobaYiN019PkySvjV">
+                            <div class="voice-name">Antoni</div>
+                            <div class="voice-desc">Männlich</div>
+                        </div>
+                        <div class="voice-option" data-voice="pNInz6obpgDQGcFmaJgB">
+                            <div class="voice-name">Adam</div>
+                            <div class="voice-desc">Tief</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="background: #EEF2FF; padding: 1rem; border-radius: 10px; border: 2px solid var(--primary-light);">
+                    <label for="sessionPin" style="font-weight: 700; color: var(--primary);">
+                        🔐 Session-PIN (optional)
+                    </label>
+                    <input type="text" id="sessionPin" placeholder="z.B. 1234" maxlength="6" 
+                           style="margin-top: 0.5rem; font-size: 1.2rem; letter-spacing: 0.3rem; text-align: center;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        Schützt das Dashboard vor Schülerzugriff. Leer lassen = kein Schutz.
+                    </div>
+                </div>
+
+                <div class="form-group" style="background: #FEF3C7; padding: 1rem; border-radius: 10px;">
+                    <strong>🔒 Sicherheitshinweis:</strong><br>
+                    Deine Keys werden verschlüsselt zum Server übertragen und nur im Arbeitsspeicher gehalten.
+                    Nach Session-Ende werden sie sofort gelöscht. Sie werden NIEMALS gespeichert.
+                </div>
+
+                <button class="btn btn-primary btn-large btn-full" onclick="createSession()">
+                    🚀 Session starten
+                </button>
+            </div>
+        </div>
+
+        <!-- Phase 2: Session aktiv -->
+        <div class="phase" id="phaseActive">
+            <div class="session-code-display">
+                <div class="session-code-label">Session-Code für Schüler:</div>
+                <div class="session-code" id="sessionCodeDisplay">------</div>
+                <div class="session-expires">Läuft ab: <span id="sessionExpires">--:--</span></div>
+            </div>
+
+            <div class="card">
+                <div class="qr-section">
+                    <div class="card-title" style="justify-content: center;">📱 QR-Code zum Beitreten</div>
+                    <img id="qrCode" class="qr-code" src="" alt="QR Code">
+                    <div class="qr-url" id="joinUrl"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="student-counter">
+                    <div>
+                        <div class="counter-number" id="studentCount">0</div>
+                        <div class="counter-label">Schüler verbunden</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📄 Text für Schüler bereitstellen</div>
+                
+                <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📁</div>
+                    <div>Datei hochladen (DOCX, PDF, TXT, Bild)</div>
+                </div>
+                <input type="file" id="fileInput" class="file-input-hidden" 
+                       accept=".docx,.pdf,.txt,.png,.jpg,.jpeg" onchange="handleFileUpload(event)">
+
+                <div class="textarea-wrapper">
+                    <textarea id="sessionText" placeholder="Oder Text hier eingeben..."></textarea>
+                </div>
+                
+                <div class="text-actions">
+                    <button class="btn btn-primary btn-small" onclick="shareText()">
+                        📤 Text an Schüler senden
+                    </button>
+                    <span class="status-badge success" id="textSharedBadge" style="display: none;">
+                        ✅ Text geteilt
+                    </span>
+                </div>
+            </div>
+
+            <!-- Accessibility Panel für Lehrer -->
+            <div class="card" id="a11yCard">
+                <div class="card-title" style="color: #166534;">
+                    ♿ Lesehilfen für Schüler einstellen
+                </div>
+                
+                <div class="a11y-content">
+                    <!-- Font Selection -->
+                    <div class="a11y-section">
+                        <label class="a11y-label">Schriftart</label>
+                        <div class="font-options">
+                            <button class="font-btn font-standard selected" onclick="setFont('standard', this)">
+                                Aa Standard
+                            </button>
+                            <button class="font-btn font-dyslexic" onclick="setFont('dyslexic', this)">
+                                Aa OpenDyslexic
+                            </button>
+                            <button class="font-btn font-sans" onclick="setFont('sans', this)">
+                                Aa Serifenlos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sliders -->
+                    <div class="a11y-section">
+                        <div class="slider-row">
+                            <label class="a11y-label">Zeilenabstand</label>
+                            <input type="range" class="a11y-slider" id="lineHeightSlider" 
+                                   min="1.2" max="3" step="0.1" value="1.8" 
+                                   oninput="updateSlider('lineHeight', this.value)">
+                            <span class="slider-value" id="lineHeightValue">1.8</span>
+                        </div>
+                    </div>
+
+                    <div class="a11y-section">
+                        <div class="slider-row">
+                            <label class="a11y-label">Zeichenabstand</label>
+                            <input type="range" class="a11y-slider" id="letterSpacingSlider" 
+                                   min="0" max="0.3" step="0.025" value="0" 
+                                   oninput="updateSlider('letterSpacing', this.value)">
+                            <span class="slider-value" id="letterSpacingValue">0</span>
+                        </div>
+                    </div>
+
+                    <div class="a11y-section">
+                        <div class="slider-row">
+                            <label class="a11y-label">Wortabstand</label>
+                            <input type="range" class="a11y-slider" id="wordSpacingSlider" 
+                                   min="0" max="0.5" step="0.05" value="0" 
+                                   oninput="updateSlider('wordSpacing', this.value)">
+                            <span class="slider-value" id="wordSpacingValue">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Checkboxes -->
+                    <div class="a11y-section">
+                        <label class="a11y-label">Zusätzliche Hilfen</label>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="syllableCheckbox" onchange="updateCheckbox('syllables', this.checked)">
+                            <label for="syllableCheckbox">Sil·ben·tren·nung anzeigen</label>
+                        </div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="focusModeCheckbox" onchange="updateCheckbox('focusMode', this.checked)">
+                            <label for="focusModeCheckbox">Fokus-Modus (nur aktiver Satz hell)</label>
+                        </div>
+                        <div class="checkbox-row">
+                            <input type="checkbox" id="rulerCheckbox" onchange="updateCheckbox('ruler', this.checked)">
+                            <label for="rulerCheckbox">Leselineal anzeigen</label>
+                        </div>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="preview-section">
+                        <div class="preview-label">
+                            👁️ Live-Vorschau
+                        </div>
+                        <div class="preview-box" id="previewBox" onmousemove="moveRuler(event)">
+                            <div class="preview-ruler" id="previewRuler"></div>
+                            <div class="preview-text font-standard" id="previewText">
+                                <span style="color: #9CA3AF; font-style: italic;">Gib oben einen Text ein, um die Vorschau zu sehen...</span>
+                            </div>
+                        </div>
+                        <div class="preview-hint">
+                            💡 So sehen die Schüler deinen Text mit den aktuellen Einstellungen.
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success btn-small" onclick="sendSettings()" style="margin-top: 1rem;">
+                        📤 Einstellungen an Schüler senden
+                    </button>
+                    <span class="status-badge success" id="settingsSentBadge" style="display: none; margin-left: 0.5rem;">
+                        ✅ Gesendet
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tasks Panel -->
+            <div class="card tasks-panel" id="tasksCard">
+                <div class="card-title">
+                    📝 Aufgaben für Schüler erstellen
+                </div>
+                
+                <div style="margin-bottom: 1rem; color: #78350F; font-size: 0.9rem;">
+                    Erstelle Aufgaben zum aktuellen Text. Schüler sehen den "Aufgaben"-Button erst nach Freigabe.
+                </div>
+
+                <ul class="task-list" id="taskList">
+                    <!-- Tasks will be added here -->
+                </ul>
+
+                <div id="noTasksMessage" style="text-align: center; padding: 1.5rem; color: #92400E;">
+                    Noch keine Aufgaben erstellt.
+                </div>
+
+                <div class="tasks-actions">
+                    <button class="btn btn-warning btn-small" onclick="generateTasks()" id="generateTasksBtn">
+                        🤖 KI-Aufgaben generieren
+                    </button>
+                    <button class="btn btn-success btn-small" onclick="releaseTasks()" id="releaseTasksBtn" style="display: none;">
+                        📤 Aufgaben freigeben
+                    </button>
+                    <span class="status-badge success" id="tasksReleasedBadge" style="display: none;">
+                        ✅ Freigegeben
+                    </span>
+                </div>
+            </div>
+
+            <div class="end-session-section">
+                <div class="end-session-warning">
+                    ⚠️ Beim Beenden der Session werden alle API-Keys gelöscht und Schüler werden getrennt.
+                </div>
+                <button class="btn btn-danger btn-large" onclick="endSession()">
+                    🛑 Session beenden
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        let socket = null;
+        let currentSessionCode = null;
+        let selectedVoice = '21m00Tcm4TlvDq8ikWAM';
+        let sessionPIN = '';
+        let currentTasks = [];
+        let tasksReleased = false;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            initVoiceSelection();
+            checkPINRequired();
+            
+            // Event Listener für Textarea - Vorschau aktualisieren bei Texteingabe
+            document.getElementById('sessionText').addEventListener('input', updatePreview);
+        });
+
+        // PIN Protection
+        function checkPINRequired() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const code = urlParams.get('code');
+            const pin = urlParams.get('pin');
+            
+            // If rejoining a session, check if PIN is required
+            if (code && !pin) {
+                // Try to reconnect - server will tell us if PIN is needed
+                // For now, show overlay if there's a stored PIN
+                const storedPIN = sessionStorage.getItem('teacher_pin_' + code);
+                if (storedPIN) {
+                    sessionPIN = storedPIN;
+                }
+            }
+        }
+
+        function checkPIN() {
+            const enteredPIN = document.getElementById('pinInput').value;
+            if (enteredPIN === sessionPIN) {
+                document.getElementById('pinOverlay').classList.add('hidden');
+                sessionStorage.setItem('teacher_pin_' + currentSessionCode, sessionPIN);
+            } else {
+                showToast('Falscher PIN!', 'error');
+                document.getElementById('pinInput').value = '';
+            }
+        }
+
+        function initSocket() {
+            socket = io(API_BASE_URL);
+            
+            socket.on('connect', () => {
+                console.log('Connected to server');
+            });
+
+            socket.on('session_created', (data) => {
+                currentSessionCode = data.code;
+                showActivePhase(data);
+            });
+
+            socket.on('session_error', (data) => {
+                showToast(data.error, 'error');
+            });
+
+            socket.on('student_joined', (data) => {
+                document.getElementById('studentCount').textContent = data.count;
+                showToast(`👋 Neuer Schüler beigetreten (${data.count} gesamt)`, 'success');
+            });
+
+            socket.on('student_left', (data) => {
+                document.getElementById('studentCount').textContent = data.count;
+            });
+
+            socket.on('session_ended_confirmed', () => {
+                showToast('Session beendet. Alle Keys gelöscht.', 'success');
+                showCreatePhase();
+            });
+        }
+
+        function initVoiceSelection() {
+            document.querySelectorAll('.voice-option').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.voice-option').forEach(v => v.classList.remove('selected'));
+                    el.classList.add('selected');
+                    selectedVoice = el.dataset.voice;
+                });
+            });
+        }
+
+        function createSession() {
+            const elevenLabsKey = document.getElementById('elevenLabsKey').value.trim();
+            const aiKey = document.getElementById('aiKey').value.trim();
+            const aiProvider = document.getElementById('aiProvider').value;
+            sessionPIN = document.getElementById('sessionPin').value.trim();
+
+            if (!elevenLabsKey) {
+                showToast('ElevenLabs API Key erforderlich!', 'error');
+                return;
+            }
+
+            socket.emit('teacher_create_session', {
+                elevenlabs_key: elevenLabsKey,
+                ai_key: aiKey,
+                ai_provider: aiProvider,
+                voice_id: selectedVoice,
+                pin: sessionPIN
+            });
+        }
+
+        function showActivePhase(data) {
+            document.getElementById('phaseCreate').classList.remove('active');
+            document.getElementById('phaseActive').classList.add('active');
+
+            document.getElementById('sessionCodeDisplay').textContent = data.code;
+            
+            const expires = new Date(data.expires);
+            document.getElementById('sessionExpires').textContent = expires.toLocaleTimeString('de-DE');
+
+            // QR Code
+            const qrUrl = `${API_BASE_URL}/api/session/qr/${data.code}`;
+            document.getElementById('qrCode').src = qrUrl;
+
+            // Join URL
+            const joinUrl = `${API_BASE_URL}/student?code=${data.code}`;
+            document.getElementById('joinUrl').textContent = joinUrl;
+
+            // Clear key inputs for security
+            document.getElementById('elevenLabsKey').value = '';
+            document.getElementById('aiKey').value = '';
+        }
+
+        function showCreatePhase() {
+            document.getElementById('phaseActive').classList.remove('active');
+            document.getElementById('phaseCreate').classList.add('active');
+            currentSessionCode = null;
+        }
+
+        async function shareText() {
+            const text = document.getElementById('sessionText').value.trim();
+            
+            if (!text) {
+                showToast('Bitte Text eingeben!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/session/set-text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code: currentSessionCode,
+                        text: text
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('textSharedBadge').style.display = 'inline-flex';
+                    showToast('✅ Text an alle Schüler gesendet!', 'success');
+                } else {
+                    showToast(data.error || 'Fehler beim Teilen', 'error');
+                }
+            } catch (error) {
+                showToast('Verbindungsfehler', 'error');
+            }
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                showToast('📄 Datei wird verarbeitet...', 'info');
+                
+                const response = await fetch(`${API_BASE_URL}/api/extract-text`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                if (data.text) {
+                    document.getElementById('sessionText').value = data.text;
+                    updatePreview();  // Vorschau aktualisieren
+                    showToast('✅ Text extrahiert!', 'success');
+                } else {
+                    showToast(data.error || 'Fehler beim Extrahieren', 'error');
+                }
+            } catch (error) {
+                showToast('Verbindungsfehler', 'error');
+            }
+        }
+
+        function endSession() {
+            if (!confirm('Session wirklich beenden?\n\nAlle API-Keys werden gelöscht und Schüler werden getrennt.')) {
+                return;
+            }
+
+            socket.emit('teacher_end_session', { code: currentSessionCode });
+        }
+
+        function goBack() {
+            if (currentSessionCode) {
+                if (!confirm('Session läuft noch! Wirklich zurück?')) {
+                    return;
+                }
+            }
+            window.location.href = '/';
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // =============================================================================
+        // ACCESSIBILITY SETTINGS
+        // =============================================================================
+        
+        let a11ySettings = {
+            font: 'standard',
+            lineHeight: 1.8,
+            letterSpacing: 0,
+            wordSpacing: 0,
+            syllables: false,
+            focusMode: false,
+            ruler: false
+        };
+
+        function setFont(fontType, element) {
+            document.querySelectorAll('.font-btn').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+            a11ySettings.font = fontType;
+            updatePreview();
+        }
+
+        function updateSlider(setting, value) {
+            document.getElementById(setting + 'Value').textContent = value;
+            a11ySettings[setting] = parseFloat(value);
+            updatePreview();
+        }
+
+        function updateCheckbox(setting, checked) {
+            a11ySettings[setting] = checked;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const previewText = document.getElementById('previewText');
+            const previewRuler = document.getElementById('previewRuler');
+            const sessionText = document.getElementById('sessionText').value.trim();
+            
+            // Font
+            previewText.className = 'preview-text font-' + a11ySettings.font;
+            
+            // Spacing
+            previewText.style.lineHeight = a11ySettings.lineHeight;
+            previewText.style.letterSpacing = a11ySettings.letterSpacing + 'em';
+            previewText.style.wordSpacing = a11ySettings.wordSpacing + 'em';
+            
+            // Kein Text eingegeben?
+            if (!sessionText) {
+                previewText.innerHTML = '<span style="color: #9CA3AF; font-style: italic;">Gib oben einen Text ein, um die Vorschau zu sehen...</span>';
+                return;
+            }
+            
+            // Text in Sätze aufteilen
+            const sentences = sessionText.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+            
+            // Render sentences (max 5 für die Vorschau)
+            let html = '';
+            const displaySentences = sentences.slice(0, 5);
+            displaySentences.forEach((sentence, index) => {
+                const dimmed = a11ySettings.focusMode && index > 0 ? ' dimmed' : '';
+                let text = sentence;
+                
+                // Syllables
+                if (a11ySettings.syllables) {
+                    text = sentence.split(' ').map(word => syllabify(word)).join(' ');
+                }
+                
+                html += `<span class="sentence${dimmed}">${text} </span>`;
+            });
+            
+            // Hinweis wenn mehr Sätze vorhanden
+            if (sentences.length > 5) {
+                html += `<span style="color: #9CA3AF; font-style: italic;">... und ${sentences.length - 5} weitere Sätze</span>`;
+            }
+            
+            previewText.innerHTML = html;
+            
+            // Ruler
+            if (a11ySettings.ruler) {
+                previewRuler.classList.add('active');
+            } else {
+                previewRuler.classList.remove('active');
+            }
+        }
+
+        function moveRuler(event) {
+            if (!a11ySettings.ruler) return;
+            
+            const box = document.getElementById('previewBox');
+            const ruler = document.getElementById('previewRuler');
+            const rect = box.getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            
+            // Center ruler on mouse position
+            const rulerHeight = parseFloat(getComputedStyle(ruler).height);
+            ruler.style.top = (y - rulerHeight / 2) + 'px';
+        }
+
+        function syllabify(word) {
+            // Remove punctuation for processing
+            const punctuation = word.match(/[.,!?;:]+$/);
+            const cleanWord = word.replace(/[.,!?;:]+$/, '');
+            
+            if (cleanWord.length <= 3) return word;
+            
+            const vowels = 'aeiouäöüAEIOUÄÖÜ';
+            const result = [];
+            let currentSyllable = '';
+            let lastWasVowel = false;
+            
+            for (let i = 0; i < cleanWord.length; i++) {
+                const char = cleanWord[i];
+                const isVowel = vowels.includes(char);
+                
+                currentSyllable += char;
+                
+                if (lastWasVowel && !isVowel && i < cleanWord.length - 1) {
+                    let lookAhead = i + 1;
+                    while (lookAhead < cleanWord.length && !vowels.includes(cleanWord[lookAhead])) {
+                        lookAhead++;
+                    }
+                    
+                    if (lookAhead < cleanWord.length && currentSyllable.length > 1) {
+                        const consonantsToMove = lookAhead - i - 1;
+                        if (consonantsToMove > 0 && currentSyllable.length > 2) {
+                            result.push(currentSyllable.slice(0, -1));
+                            currentSyllable = currentSyllable.slice(-1);
+                        }
+                    }
+                }
+                
+                lastWasVowel = isVowel;
+            }
+            
+            if (currentSyllable) {
+                result.push(currentSyllable);
+            }
+            
+            const merged = [];
+            for (let i = 0; i < result.length; i++) {
+                if (result[i].length === 1 && !vowels.includes(result[i]) && merged.length > 0) {
+                    merged[merged.length - 1] += result[i];
+                } else if (result[i].length === 1 && !vowels.includes(result[i]) && i < result.length - 1) {
+                    result[i + 1] = result[i] + result[i + 1];
+                } else {
+                    merged.push(result[i]);
+                }
+            }
+            
+            let syllabified = merged.length > 1 ? merged.join('·') : cleanWord;
+            return punctuation ? syllabified + punctuation[0] : syllabified;
+        }
+
+        function sendSettings() {
+            if (!currentSessionCode) {
+                showToast('Keine aktive Session', 'error');
+                return;
+            }
+
+            socket.emit('teacher_update_settings', {
+                code: currentSessionCode,
+                settings: a11ySettings
+            });
+
+            // Show confirmation
+            const badge = document.getElementById('settingsSentBadge');
+            badge.style.display = 'inline-flex';
+            setTimeout(() => badge.style.display = 'none', 3000);
+            
+            showToast('✅ Einstellungen an alle Schüler gesendet', 'success');
+        }
+
+        // =============================================================================
+        // TASKS MANAGEMENT
+        // =============================================================================
+
+        async function generateTasks() {
+            const text = document.getElementById('sessionText').value.trim();
+            if (!text) {
+                showToast('Bitte zuerst einen Text eingeben', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('generateTasksBtn');
+            btn.innerHTML = '<span class="generating-spinner"></span> Generiere...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/generate-tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        session_code: currentSessionCode
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Fehler beim Generieren');
+                }
+
+                currentTasks = data.tasks || [];
+                renderTaskList();
+                
+                showToast(`✅ ${currentTasks.length} Aufgaben generiert!`, 'success');
+
+            } catch (error) {
+                console.error('Task generation error:', error);
+                showToast('Fehler: ' + error.message, 'error');
+            }
+
+            btn.innerHTML = '🤖 KI-Aufgaben generieren';
+            btn.disabled = false;
+        }
+
+        function renderTaskList() {
+            const list = document.getElementById('taskList');
+            const noMsg = document.getElementById('noTasksMessage');
+            const releaseBtn = document.getElementById('releaseTasksBtn');
+
+            list.innerHTML = '';
+
+            if (currentTasks.length === 0) {
+                noMsg.style.display = 'block';
+                releaseBtn.style.display = 'none';
+                return;
+            }
+
+            noMsg.style.display = 'none';
+            releaseBtn.style.display = 'inline-flex';
+
+            currentTasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <span class="task-text">${task.question || task.text || task}</span>
+                    <span class="task-type">${task.type || 'Frage'}</span>
+                    <button class="task-delete" onclick="deleteTask(${index})">✕</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function deleteTask(index) {
+            currentTasks.splice(index, 1);
+            renderTaskList();
+        }
+
+        function releaseTasks() {
+            if (!currentSessionCode) {
+                showToast('Keine aktive Session', 'error');
+                return;
+            }
+
+            if (currentTasks.length === 0) {
+                showToast('Keine Aufgaben zum Freigeben', 'error');
+                return;
+            }
+
+            socket.emit('teacher_release_tasks', {
+                code: currentSessionCode,
+                tasks: currentTasks
+            });
+
+            tasksReleased = true;
+            
+            // Show confirmation
+            const badge = document.getElementById('tasksReleasedBadge');
+            badge.style.display = 'inline-flex';
+            document.getElementById('releaseTasksBtn').style.display = 'none';
+            
+            showToast(`📝 ${currentTasks.length} Aufgaben an Schüler freigegeben!`, 'success');
+        }
+    </script>
+</body>
+</html>

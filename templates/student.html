@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeseAssistent - Schüler</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.cdnfonts.com/css/opendyslexic" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+        :root {
+            --primary: #6366F1;
+            --primary-light: #818CF8;
+            --primary-dark: #4F46E5;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+            --text-dark: #1F2937;
+            --text-muted: #6B7280;
+            --bg-light: #F3F4F6;
+            --highlight: #FEF08A;
+            --highlight-active: #FACC15;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            /* Accessibility Variables */
+            --reading-font: 'Merriweather', serif;
+            --reading-line-height: 1.8;
+            --reading-letter-spacing: 0em;
+            --reading-word-spacing: 0em;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #C7D2FE 100%);
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 2px solid var(--bg-light);
+            background: white;
+            cursor: pointer;
+            font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-light);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            flex: 1;
+        }
+
+        .session-badge {
+            background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+            color: #065F46;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+
+        /* Phases */
+        .phase {
+            display: none;
+        }
+
+        .phase.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Join Form */
+        .join-form {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .join-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .join-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+
+        .join-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        .code-input {
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            padding: 1rem;
+            border: 3px solid var(--bg-light);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto 1rem;
+            text-transform: uppercase;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-large {
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Reading Card */
+        .reading-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .reading-text-wrapper {
+            position: relative;
+        }
+
+        .reading-text {
+            font-family: var(--reading-font);
+            font-size: 22px;
+            line-height: var(--reading-line-height);
+            letter-spacing: var(--reading-letter-spacing);
+            word-spacing: var(--reading-word-spacing);
+            color: var(--text-dark);
+            min-height: 200px;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 1rem;
+            border-radius: 12px;
+            background: #FAFAFA;
+        }
+
+        .reading-text .word {
+            display: inline;
+            padding: 0.1rem 0.2rem;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+        }
+
+        .reading-text .word:hover {
+            background: #E0E7FF;
+        }
+
+        .reading-text .word.active {
+            background: linear-gradient(135deg, var(--highlight) 0%, var(--highlight-active) 100%);
+            color: #92400E;
+            font-weight: 600;
+            transform: scale(1.05);
+        }
+
+        .reading-text .word.spoken {
+            color: var(--text-muted);
+        }
+
+        /* Focus Mode */
+        .reading-text.focus-mode .word {
+            opacity: 0.25;
+            transition: opacity 0.3s;
+        }
+
+        .reading-text.focus-mode .word.active,
+        .reading-text.focus-mode .word.focus-sentence {
+            opacity: 1;
+        }
+
+        .reading-text.focus-mode .word.spoken:not(.focus-sentence) {
+            opacity: 0.4;
+        }
+
+        /* Syllable display */
+        .syllable {
+            border-right: 1px dotted var(--text-muted);
+            padding-right: 1px;
+            margin-right: 1px;
+        }
+
+        .syllable:last-child {
+            border-right: none;
+        }
+
+        /* Reading ruler */
+        .reading-ruler {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            opacity: 0.5;
+            pointer-events: none;
+            display: none;
+            transition: top 0.1s ease-out;
+        }
+
+        .reading-text.show-ruler .reading-ruler {
+            display: block;
+        }
+
+        /* Audio Controls */
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+            border-radius: 12px;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .play-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .play-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-container {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #C7D2FE;
+            border-radius: 4px;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            width: 0%;
+            transition: width 0.1s linear;
+            border-radius: 4px;
+        }
+
+        .time-display {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .speed-control label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .speed-control select {
+            padding: 0.4rem 0.6rem;
+            border: 2px solid #C7D2FE;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Accessibility Panel */
+        .a11y-panel {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+            border: 2px solid #86EFAC;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .a11y-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .a11y-icon {
+            font-size: 1.25rem;
+        }
+
+        .a11y-title {
+            font-weight: 700;
+            color: #166534;
+            flex: 1;
+        }
+
+        .a11y-toggle {
+            font-size: 0.8rem;
+            color: #166534;
+            transition: transform 0.3s;
+        }
+
+        .a11y-panel.collapsed .a11y-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .a11y-panel.collapsed .a11y-content {
+            display: none;
+        }
+
+        .a11y-content {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .a11y-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .a11y-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #166534;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Font Selection */
+        .font-options {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .font-btn-select {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #86EFAC;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .font-btn-select:hover {
+            border-color: #22C55E;
+            background: #F0FDF4;
+        }
+
+        .font-btn-select.selected {
+            border-color: #16A34A;
+            background: #22C55E;
+            color: white;
+        }
+
+        .font-btn-select.font-standard {
+            font-family: 'Merriweather', serif;
+        }
+
+        .font-btn-select.font-dyslexic {
+            font-family: 'OpenDyslexic', sans-serif;
+        }
+
+        .font-btn-select.font-sans {
+            font-family: 'Nunito', sans-serif;
+        }
+
+        /* Sliders */
+        .a11y-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .a11y-slider-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            min-width: 100px;
+        }
+
+        .a11y-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            border-radius: 4px;
+            background: #BBF7D0;
+            outline: none;
+        }
+
+        .a11y-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #16A34A;
+            cursor: pointer;
+        }
+
+        .a11y-slider-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #166534;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Checkboxes */
+        .a11y-checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .a11y-checkbox {
+            width: 20px;
+            height: 20px;
+            accent-color: #16A34A;
+            cursor: pointer;
+        }
+
+        .a11y-checkbox-label {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            cursor: pointer;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .action-btn {
+            padding: 1rem;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .action-btn.speak {
+            background: linear-gradient(135deg, var(--success) 0%, #34D399 100%);
+            color: white;
+        }
+
+        .action-btn.tasks {
+            background: linear-gradient(135deg, var(--warning) 0%, #FBBF24 100%);
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.02);
+            box-shadow: var(--shadow);
+        }
+
+        .action-icon {
+            font-size: 1.5rem;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Language Selector with Flag Icons */
+        .language-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .lang-btn {
+            width: 48px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid var(--bg-light);
+            background: white;
+            transition: all 0.2s;
+            overflow: hidden;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lang-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .lang-btn .emoji-flag {
+            font-size: 1.5rem;
+        }
+
+        .lang-btn:hover {
+            border-color: var(--primary-light);
+            transform: scale(1.05);
+        }
+
+        .lang-btn.selected {
+            border-color: var(--primary);
+            background: #EEF2FF;
+        }
+
+        /* Translation Popup */
+        .translation-popup {
+            display: none;
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            box-shadow: var(--shadow-lg);
+            max-width: 90%;
+            z-index: 100;
+        }
+
+        .translation-popup.visible {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+
+        .translation-original {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .translation-result {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .translation-close {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        /* Waiting for text */
+        .waiting-message {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .waiting-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Session Ended Overlay */
+        .session-ended-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .session-ended-overlay.visible {
+            display: flex;
+        }
+
+        .session-ended-box {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        .session-ended-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+        }
+
+        .toast {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--error); }
+        .toast.info { background: var(--primary); }
+
+        /* Loading spinner */
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .audio-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .play-btn {
+                align-self: center;
+            }
+            
+            .a11y-slider-row {
+                flex-wrap: wrap;
+            }
+            
+            .a11y-slider-label {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Phase 1: Join Session -->
+        <div class="phase active" id="phaseJoin">
+            <div class="card join-form">
+                <div class="join-icon">📚</div>
+                <div class="join-title">LeseAssistent</div>
+                <div class="join-subtitle">Gib den Code von deinem Lehrer ein</div>
+                
+                <input type="text" class="code-input" id="sessionCodeInput" 
+                       placeholder="ABC123" maxlength="6" autocomplete="off">
+                
+                <button class="btn btn-primary btn-large" onclick="joinSession()">
+                    🚀 Beitreten
+                </button>
+            </div>
+        </div>
+
+        <!-- Phase 2: Reading View -->
+        <div class="phase" id="phaseReading">
+            <header>
+                <button class="back-btn" onclick="goBack()">←</button>
+                <h1>📖 LeseAssistent</h1>
+                <div class="session-badge" id="sessionBadge">🔗 Verbunden</div>
+            </header>
+
+            <div class="card" id="textCard">
+                <div class="waiting-message" id="waitingMessage">
+                    <div class="waiting-icon">⏳</div>
+                    <div>Warte auf Text vom Lehrer...</div>
+                </div>
+                
+                <div id="readingContent" style="display: none;">
+                    <div class="reading-card">
+                        <div class="reading-text-wrapper">
+                            <div class="reading-text" id="readingText"></div>
+                            <div class="reading-ruler"></div>
+                        </div>
+                    </div>
+
+                    <!-- Audio Controls -->
+                    <div class="audio-controls" id="audioControls">
+                        <button class="play-btn" id="playBtn" onclick="togglePlayback()" disabled>
+                            ▶️
+                        </button>
+                        <div class="progress-container">
+                            <div class="progress-bar" onclick="seekAudio(event)">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="time-display">
+                                <span id="currentTime">0:00</span> / <span id="totalTime">0:00</span>
+                            </div>
+                        </div>
+                        <div class="speed-control">
+                            <label for="playbackSpeed">Tempo:</label>
+                            <select id="playbackSpeed" onchange="changePlaybackSpeed()">
+                                <option value="0.5">0.5x</option>
+                                <option value="0.75">0.75x</option>
+                                <option value="1" selected>1x</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button class="action-btn speak" onclick="openSpeakingPractice()">
+                            <span class="action-icon">🎤</span>
+                            Nachsprechen
+                        </button>
+                        <button class="action-btn tasks" id="tasksBtn" onclick="openTasks()" style="display: none;">
+                            <span class="action-icon">📝</span>
+                            Aufgaben
+                        </button>
+                    </div>
+
+                    <!-- Language Selector for Translation -->
+                    <div class="language-selector">
+                        <span style="font-weight: 600; margin-right: 0.5rem;">🌍</span>
+                        <button class="lang-btn" data-lang="tr" title="Türkisch">
+                            <img src="/static/t.png" alt="TR">
+                        </button>
+                        <button class="lang-btn" data-lang="bg" title="Bulgarisch">
+                            <img src="/static/b.png" alt="BG">
+                        </button>
+                        <button class="lang-btn" data-lang="de" title="Deutsch">
+                            <img src="/static/d.png" alt="DE">
+                        </button>
+                        <button class="lang-btn" data-lang="ar" title="Arabisch">
+                            <img src="/static/a.png" alt="AR">
+                        </button>
+                        <button class="lang-btn" data-lang="uk" title="Ukrainisch">
+                            <img src="/static/u.png" alt="UK">
+                        </button>
+                        <button class="lang-btn" data-lang="en" title="Englisch">
+                            <img src="/static/g.png" alt="EN">
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Translation Popup -->
+    <div class="translation-popup" id="translationPopup">
+        <button class="translation-close" onclick="closeTranslation()">✕</button>
+        <div class="translation-original" id="translationOriginal"></div>
+        <div class="translation-result" id="translationResult"></div>
+    </div>
+
+    <!-- Session Ended Overlay -->
+    <div class="session-ended-overlay" id="sessionEndedOverlay">
+        <div class="session-ended-box">
+            <div class="session-ended-icon">👋</div>
+            <h2>Session beendet</h2>
+            <p style="color: var(--text-muted); margin: 1rem 0;">Der Lehrer hat die Session beendet.</p>
+            <button class="btn btn-primary" onclick="location.reload()">Neue Session beitreten</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+        
+        // Socket & Session
+        let socket = null;
+        let sessionCode = null;
+        
+        // Audio State
+        let audioContext = null;
+        let audioBuffer = null;
+        let audioSource = null;
+        let isPlaying = false;
+        let startTime = 0;
+        let pauseTime = 0;
+        let animationFrameId = null;
+        
+        // Word Timings from ElevenLabs
+        let wordTimings = [];
+        let currentText = '';
+        
+        // Translation
+        let selectedLanguage = null;
+        
+        // Accessibility Settings
+        let a11ySettings = {
+            font: 'standard',
+            lineHeight: 1.8,
+            letterSpacing: 0,
+            wordSpacing: 0,
+            syllables: false,
+            focusMode: false,
+            ruler: false
+        };
+
+        // =============================================================================
+        // INITIALIZATION
+        // =============================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initSocket();
+            initLanguageButtons();
+        });
+
+        function initSocket() {
+            socket = io(API_BASE_URL);
+            
+            socket.on('connect', () => {
+                console.log('Socket connected');
+                
+                // Auto-join wenn Code in URL (Rückkehr von Nachsprechen/Aufgaben)
+                const urlParams = new URLSearchParams(window.location.search);
+                const codeFromUrl = urlParams.get('code');
+                if (codeFromUrl && !sessionCode) {
+                    document.getElementById('sessionCodeInput').value = codeFromUrl;
+                    joinSession();
+                }
+            });
+
+            socket.on('join_success', (data) => {
+                sessionCode = data.code;
+                showReadingPhase();
+                
+                // Apply settings from teacher if they exist
+                if (data.settings && Object.keys(data.settings).length > 0) {
+                    applySettings(data.settings);
+                }
+                
+                if (data.text) {
+                    displayText(data.text);
+                }
+                
+                // Show tasks button if tasks are available
+                if (data.tasks_available) {
+                    document.getElementById('tasksBtn').style.display = 'block';
+                    sessionStorage.setItem('leseassistent_tasks', JSON.stringify(data.tasks || []));
+                }
+            });
+
+            socket.on('join_error', (data) => {
+                showToast(data.error, 'error');
+            });
+
+            socket.on('text_updated', (data) => {
+                displayText(data.text);
+                showToast('📄 Neuer Text vom Lehrer!', 'success');
+            });
+
+            socket.on('session_ended', (data) => {
+                document.getElementById('sessionEndedOverlay').classList.add('visible');
+            });
+
+            socket.on('settings_updated', (data) => {
+                applySettings(data.settings);
+                showToast('⚙️ Lesehilfen vom Lehrer aktualisiert', 'info');
+            });
+            
+            // Tasks released by teacher
+            socket.on('tasks_released', (data) => {
+                document.getElementById('tasksBtn').style.display = 'block';
+                sessionStorage.setItem('leseassistent_tasks', JSON.stringify(data.tasks || []));
+                showToast('📝 Aufgaben vom Lehrer freigegeben!', 'success');
+            });
+        }
+
+        function initLanguageButtons() {
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    selectedLanguage = btn.dataset.lang;
+                });
+            });
+        }
+
+        // =============================================================================
+        // SESSION JOIN
+        // =============================================================================
+
+        function joinSession() {
+            const code = document.getElementById('sessionCodeInput').value.trim().toUpperCase();
+            
+            if (code.length !== 6) {
+                showToast('Bitte 6-stelligen Code eingeben', 'error');
+                return;
+            }
+
+            socket.emit('student_join_session', {
+                code: code,
+                name: 'Schüler'
+            });
+        }
+
+        function showReadingPhase() {
+            document.getElementById('phaseJoin').classList.remove('active');
+            document.getElementById('phaseReading').classList.add('active');
+        }
+
+        // =============================================================================
+        // TEXT DISPLAY WITH WORD HIGHLIGHTING
+        // =============================================================================
+
+        function displayText(text) {
+            currentText = text;
+            document.getElementById('waitingMessage').style.display = 'none';
+            document.getElementById('readingContent').style.display = 'block';
+            
+            // Display text with clickable words
+            displayTextWithWords(text);
+            
+            // Store for other pages
+            sessionStorage.setItem('leseassistent_text', text);
+            sessionStorage.setItem('leseassistent_session_code', sessionCode);
+            
+            // Generate TTS with timestamps
+            generateTTS(text);
+        }
+
+        function displayTextWithWords(text) {
+            const container = document.getElementById('readingText');
+            container.innerHTML = '';
+            
+            const words = text.split(/(\s+)/);
+            let wordIndex = 0;
+            let sentenceIndex = 0;
+            
+            words.forEach(part => {
+                if (part.match(/\s+/)) {
+                    container.appendChild(document.createTextNode(part));
+                } else if (part.length > 0) {
+                    const span = document.createElement('span');
+                    span.className = 'word';
+                    
+                    // Apply syllables if enabled
+                    if (a11ySettings.syllables) {
+                        span.textContent = syllabify(part);
+                    } else {
+                        span.textContent = part;
+                    }
+                    
+                    span.dataset.index = wordIndex++;
+                    span.dataset.sentence = sentenceIndex;
+                    
+                    // Track sentence boundaries
+                    if (part.match(/[.!?]$/)) {
+                        sentenceIndex++;
+                    }
+                    
+                    // Click for translation
+                    span.addEventListener('click', () => translateWord(part));
+                    
+                    container.appendChild(span);
+                }
+            });
+            
+            // Add reading ruler if enabled
+            if (a11ySettings.ruler) {
+                toggleReadingRuler(true);
+            }
+        }
+
+        // =============================================================================
+        // TTS WITH WORD TIMESTAMPS
+        // =============================================================================
+
+        async function generateTTS(text) {
+            const playBtn = document.getElementById('playBtn');
+            playBtn.disabled = true;
+            playBtn.innerHTML = '<span class="spinner"></span>';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_code: sessionCode,
+                        text: text
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'TTS-Fehler');
+                }
+                
+                // Parse word timings from alignment
+                if (data.alignment) {
+                    wordTimings = [];
+                    const characters = data.alignment.characters || [];
+                    const charStartTimes = data.alignment.character_start_times_seconds || [];
+                    const charEndTimes = data.alignment.character_end_times_seconds || [];
+                    
+                    let currentWord = '';
+                    let wordStart = 0;
+                    let wordEnd = 0;
+                    
+                    for (let i = 0; i < characters.length; i++) {
+                        const char = characters[i];
+                        
+                        if (char === ' ' || i === characters.length - 1) {
+                            if (i === characters.length - 1 && char !== ' ') {
+                                currentWord += char;
+                                wordEnd = charEndTimes[i] || wordEnd;
+                            }
+                            
+                            if (currentWord.trim()) {
+                                wordTimings.push({
+                                    word: currentWord.trim(),
+                                    start: wordStart,
+                                    end: wordEnd
+                                });
+                            }
+                            
+                            currentWord = '';
+                            if (i < characters.length - 1) {
+                                wordStart = charStartTimes[i + 1] || 0;
+                            }
+                        } else {
+                            if (currentWord === '') {
+                                wordStart = charStartTimes[i] || 0;
+                            }
+                            currentWord += char;
+                            wordEnd = charEndTimes[i] || wordEnd;
+                        }
+                    }
+                }
+                
+                // Decode and load audio
+                const audioBytes = Uint8Array.from(atob(data.audio_base64), c => c.charCodeAt(0));
+                
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                
+                audioBuffer = await audioContext.decodeAudioData(audioBytes.buffer);
+                
+                // Update UI
+                document.getElementById('totalTime').textContent = formatTime(audioBuffer.duration);
+                playBtn.disabled = false;
+                playBtn.textContent = '▶️';
+                
+            } catch (error) {
+                console.error('TTS Error:', error);
+                showToast(`Audio-Fehler: ${error.message}`, 'error');
+                playBtn.disabled = false;
+                playBtn.textContent = '▶️';
+            }
+        }
+
+        // =============================================================================
+        // AUDIO PLAYBACK WITH WORD HIGHLIGHTING
+        // =============================================================================
+
+        function togglePlayback() {
+            if (isPlaying) {
+                pauseAudio();
+            } else {
+                playAudio();
+            }
+        }
+
+        function playAudio() {
+            if (!audioBuffer) return;
+            
+            // Resume AudioContext if suspended (iOS)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            audioSource = audioContext.createBufferSource();
+            audioSource.buffer = audioBuffer;
+            audioSource.playbackRate.value = parseFloat(document.getElementById('playbackSpeed').value);
+            audioSource.connect(audioContext.destination);
+            
+            audioSource.onended = () => {
+                if (isPlaying) {
+                    stopAudio();
+                }
+            };
+            
+            const offset = pauseTime;
+            startTime = audioContext.currentTime - offset;
+            audioSource.start(0, offset);
+            
+            isPlaying = true;
+            document.getElementById('playBtn').textContent = '⏸️';
+            
+            updateHighlighting();
+        }
+
+        function pauseAudio() {
+            if (!isPlaying) return;
+            
+            const playbackRate = parseFloat(document.getElementById('playbackSpeed').value);
+            pauseTime = (audioContext.currentTime - startTime) * playbackRate;
+            
+            audioSource.stop();
+            isPlaying = false;
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            
+            document.getElementById('playBtn').textContent = '▶️';
+        }
+
+        function stopAudio() {
+            if (audioSource) {
+                try { audioSource.stop(); } catch(e) {}
+            }
+            
+            isPlaying = false;
+            pauseTime = 0;
+            
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+            
+            document.getElementById('playBtn').textContent = '▶️';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('currentTime').textContent = '0:00';
+            
+            // Remove highlights
+            document.querySelectorAll('.word').forEach(w => {
+                w.classList.remove('active', 'spoken', 'focus-sentence');
+            });
+        }
+
+        function updateHighlighting() {
+            if (!isPlaying || !audioBuffer) return;
+            
+            const playbackRate = parseFloat(document.getElementById('playbackSpeed').value);
+            const currentTime = (audioContext.currentTime - startTime) * playbackRate;
+            
+            // Update progress bar
+            const progress = (currentTime / audioBuffer.duration) * 100;
+            document.getElementById('progressFill').style.width = `${Math.min(progress, 100)}%`;
+            document.getElementById('currentTime').textContent = formatTime(currentTime);
+            
+            // Update word highlighting
+            const wordElements = document.querySelectorAll('.word');
+            let activeElement = null;
+            let activeSentence = null;
+            
+            wordTimings.forEach((timing, index) => {
+                const element = wordElements[index];
+                if (!element) return;
+                
+                if (currentTime >= timing.start && currentTime <= timing.end) {
+                    element.classList.add('active');
+                    element.classList.add('spoken');
+                    activeElement = element;
+                    activeSentence = element.dataset.sentence;
+                    
+                    // Scroll into view if needed
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else if (currentTime > timing.end) {
+                    element.classList.remove('active');
+                    element.classList.add('spoken');
+                } else {
+                    element.classList.remove('active', 'spoken');
+                }
+                
+                // Focus mode - highlight same sentence words
+                if (a11ySettings.focusMode && activeSentence !== null) {
+                    if (element.dataset.sentence === activeSentence) {
+                        element.classList.add('focus-sentence');
+                    } else {
+                        element.classList.remove('focus-sentence');
+                    }
+                }
+            });
+            
+            // Update reading ruler position
+            if (activeElement) {
+                updateReadingRuler(activeElement);
+            }
+            
+            animationFrameId = requestAnimationFrame(updateHighlighting);
+        }
+
+        function seekAudio(event) {
+            if (!audioBuffer) return;
+            
+            const progressBar = event.currentTarget;
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = clickX / rect.width;
+            
+            const wasPlaying = isPlaying;
+            if (isPlaying) {
+                pauseAudio();
+            }
+            
+            pauseTime = percentage * audioBuffer.duration;
+            
+            if (wasPlaying) {
+                playAudio();
+            } else {
+                document.getElementById('progressFill').style.width = `${percentage * 100}%`;
+                document.getElementById('currentTime').textContent = formatTime(pauseTime);
+            }
+        }
+
+        function changePlaybackSpeed() {
+            if (isPlaying) {
+                audioSource.playbackRate.value = parseFloat(document.getElementById('playbackSpeed').value);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // =============================================================================
+        // ACCESSIBILITY FEATURES (Received from Teacher)
+        // =============================================================================
+
+        function applySettings(settings) {
+            a11ySettings = { ...a11ySettings, ...settings };
+            
+            // Apply font
+            let fontFamily;
+            switch(settings.font) {
+                case 'dyslexic':
+                    fontFamily = "'OpenDyslexic', sans-serif";
+                    break;
+                case 'sans':
+                    fontFamily = "'Nunito', sans-serif";
+                    break;
+                default:
+                    fontFamily = "'Merriweather', serif";
+            }
+            document.documentElement.style.setProperty('--reading-font', fontFamily);
+            
+            // Apply spacing
+            document.documentElement.style.setProperty('--reading-line-height', settings.lineHeight);
+            document.documentElement.style.setProperty('--reading-letter-spacing', settings.letterSpacing + 'em');
+            document.documentElement.style.setProperty('--reading-word-spacing', settings.wordSpacing + 'em');
+            
+            // Apply focus mode
+            const readingText = document.getElementById('readingText');
+            readingText.classList.toggle('focus-mode', settings.focusMode);
+            readingText.classList.toggle('show-ruler', settings.ruler);
+            
+            // Re-render text if syllables changed
+            if (currentText) {
+                displayTextWithWords(currentText);
+            }
+        }
+
+        function toggleFocusMode(enabled) {
+            const readingText = document.getElementById('readingText');
+            readingText.classList.toggle('focus-mode', enabled);
+            a11ySettings.focusMode = enabled;
+        }
+
+        function toggleReadingRuler(enabled) {
+            const readingText = document.getElementById('readingText');
+            readingText.classList.toggle('show-ruler', enabled);
+            a11ySettings.ruler = enabled;
+        }
+
+        function updateReadingRuler(activeWord) {
+            if (!a11ySettings.ruler) return;
+            
+            const ruler = document.querySelector('.reading-ruler');
+            if (!ruler || !activeWord) return;
+            
+            const rect = activeWord.getBoundingClientRect();
+            const containerRect = document.getElementById('readingText').getBoundingClientRect();
+            ruler.style.top = (rect.bottom - containerRect.top + 5) + 'px';
+        }
+
+        // German syllable rules (simplified)
+        function syllabify(word) {
+            if (word.length <= 3) return word;
+            
+            const vowels = 'aeiouäöüAEIOUÄÖÜ';
+            const result = [];
+            let currentSyllable = '';
+            let lastWasVowel = false;
+            
+            for (let i = 0; i < word.length; i++) {
+                const char = word[i];
+                const isVowel = vowels.includes(char);
+                
+                currentSyllable += char;
+                
+                if (lastWasVowel && !isVowel && i < word.length - 1) {
+                    let lookAhead = i + 1;
+                    while (lookAhead < word.length && !vowels.includes(word[lookAhead])) {
+                        lookAhead++;
+                    }
+                    
+                    if (lookAhead < word.length && currentSyllable.length > 1) {
+                        const consonantsToMove = lookAhead - i - 1;
+                        if (consonantsToMove > 0 && currentSyllable.length > 2) {
+                            result.push(currentSyllable.slice(0, -1));
+                            currentSyllable = currentSyllable.slice(-1);
+                        }
+                    }
+                }
+                
+                lastWasVowel = isVowel;
+            }
+            
+            if (currentSyllable) {
+                result.push(currentSyllable);
+            }
+            
+            const merged = [];
+            for (let i = 0; i < result.length; i++) {
+                if (result[i].length === 1 && !vowels.includes(result[i]) && merged.length > 0) {
+                    merged[merged.length - 1] += result[i];
+                } else if (result[i].length === 1 && !vowels.includes(result[i]) && i < result.length - 1) {
+                    result[i + 1] = result[i] + result[i + 1];
+                } else {
+                    merged.push(result[i]);
+                }
+            }
+            
+            return merged.length > 1 ? merged.join('·') : word;
+        }
+
+        // =============================================================================
+        // TRANSLATION
+        // =============================================================================
+
+        async function translateWord(word) {
+            if (!selectedLanguage) {
+                showToast('Wähle zuerst eine Sprache aus', 'info');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/translate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_code: sessionCode,
+                        text: word,
+                        target_language: selectedLanguage
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.translated_text) {
+                    document.getElementById('translationOriginal').textContent = word;
+                    document.getElementById('translationResult').textContent = data.translated_text;
+                    document.getElementById('translationPopup').classList.add('visible');
+                }
+            } catch (error) {
+                showToast('Übersetzungsfehler', 'error');
+            }
+        }
+
+        function closeTranslation() {
+            document.getElementById('translationPopup').classList.remove('visible');
+        }
+
+        // =============================================================================
+        // NAVIGATION
+        // =============================================================================
+
+        function openSpeakingPractice() {
+            if (!currentText) {
+                showToast('Kein Text vorhanden', 'error');
+                return;
+            }
+            window.location.href = '/nachsprechen';
+        }
+
+        function openTasks() {
+            if (!currentText) {
+                showToast('Kein Text vorhanden', 'error');
+                return;
+            }
+            window.location.href = '/aufgaben';
+        }
+
+        function goBack() {
+            if (isPlaying) {
+                stopAudio();
+            }
+            window.location.href = '/';
+        }
+
+        // =============================================================================
+        // UTILITIES
+        // =============================================================================
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
